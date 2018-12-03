@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$USER_HOME$/Downloads/PyTorch-GAN-master/.idea/PyTorch-GAN-master.iml" filepath="$USER_HOME$/Downloads/PyTorch-GAN-master/.idea/PyTorch-GAN-master.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/RepresentationLearningOptimization.iml" filepath="$PROJECT_DIR$/.idea/RepresentationLearningOptimization.iml" />
+    </modules>
+  </component>
+</project>
