@@ -12,7 +12,7 @@ from pymoo.algorithms.nsga3 import ReferenceDirectionSurvival, comp_by_cv_then_r
 from pymop.problems import *
 from pymoo.optimize import minimize
 from pymoo.model.evaluator import Evaluator
-from frameworks.factory import get_framework
+from frameworks.get_framework import get_framework
 import sys
 
 
@@ -114,11 +114,7 @@ class Samoo(GeneticAlgorithm):
                                        algorithm=self,
                                        curr_ref=self.ref_dirs[self.cur_ref_no, :],
                                        model_list=self.model_list)  # create frameworks
-        if problem.n_constr > 0:
-            self.samoo_problem = ConstrainedProblem(problem=self.problem, framework=self.framework)  # problem wrapper
-        else:
-            self.samoo_problem = UnConstrainedProblem(problem=self.problem, framework=self.framework)  # problem wrapper
-
+        self.samoo_problem = SamooProblem(problem=self.problem, framework=self.framework)  # problem wrapper
         temp_pop = self._each_iteration_samoo(pop, **kwargs)
         # self.frameworks.train(x=self.archive["x"], f=self.archive["f"], g=self.archive["g"])
         return temp_pop
@@ -145,7 +141,7 @@ class Samoo(GeneticAlgorithm):
 
 
 # wrapper for pymop problem which is used by metamodel based optimization
-class ConstrainedProblem(Problem):
+class SamooProblem(Problem):
 
     def __init__(self, problem, framework, *args, **kwargs):
         self.problem = problem
@@ -154,26 +150,31 @@ class ConstrainedProblem(Problem):
                          xl=problem.xl, xu=problem.xu)
 
     def _evaluate_high_fidelity(self, x, f, g, *args, **kwargs):
-        return self.problem._evaluate(x, f, g, *args, **kwargs)
+
+        out = dict()
+        self.problem._evaluate(x, out, *args, **kwargs)
+        f[:, :] = out["F"]
+        if self.problem.n_constr > 0:
+            g[:, :] = out["G"]
 
     def _evaluate(self, x, f, g, *args, **kwargs):
         self.framework.predict(x, f, g, *args, **kwargs)
 
 
-class UnConstrainedProblem(Problem):
-
-    def __init__(self, problem, framework, *args, **kwargs):
-        self.problem = problem
-        self.framework = framework
-        super().__init__(n_var=problem.n_var, n_obj=problem.n_obj, n_constr=problem.n_constr, type_var=problem.type_var,
-                         xl=problem.xl, xu=problem.xu)
-
-    def _evaluate_high_fidelity(self, x, f, g, *args, **kwargs):
-        return self.problem._evaluate(x, f, g, *args, **kwargs)
-
-    def _evaluate(self, x, f, *args, **kwargs):
-        g = np.zeros((x.shape[0], 1))
-        self.framework.predict(x, f, g, *args, **kwargs)
+# class UnConstrainedProblem(Problem):
+#
+#     def __init__(self, problem, framework, *args, **kwargs):
+#         self.problem = problem
+#         self.framework = framework
+#         super().__init__(n_var=problem.n_var, n_obj=problem.n_obj, n_constr=problem.n_constr, type_var=problem.type_var,
+#                          xl=problem.xl, xu=problem.xu)
+#
+#     def _evaluate_high_fidelity(self, x, f, g, *args, **kwargs):
+#         return self.problem._evaluate(x, f, g, *args, **kwargs)
+#
+#     def _evaluate(self, x, f, *args, **kwargs):
+#         g = np.zeros((x.shape[0], 1))
+#         self.framework.predict(x, f, g, *args, **kwargs)
 
 
 class SamooEvaluator(Evaluator):
