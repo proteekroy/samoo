@@ -1,36 +1,3 @@
-# from frameworks import *
-# from pymoo.model.termination import MaximumFunctionCallTermination, MaximumGenerationTermination, IGDTermination, \
-#     Termination, get_termination
-# from pymoo.rand import random
-#
-#
-# def minimize(problem,
-#              method,
-#              termination=('n_eval', 500),
-#              **kwargs):
-#     # create an evaluator defined by the termination criterium
-#     if not isinstance(termination, Termination):
-#         termination = get_termination(*termination, pf=kwargs.get('pf', None))
-#
-#     # set a random random seed if not provided
-#     if 'seed' not in kwargs:
-#         kwargs['seed'] = random.randint(1, 10000)
-#
-#     algorithm = get_framework(method, problem) # (**method_args)
-#     res = algorithm.solve(problem, termination, **kwargs)
-#
-#     return res
-#
-#
-# def get_framework(name, problem):
-#     if name == 'generative':
-#         return GenerativeMF
-#     elif name == 'simultaneous':
-#         return SimultaneousMF(problem=problem)
-#     else:
-#         raise Exception("Framework not known.")
-
-
 from pymoo.model.termination import MaximumFunctionCallTermination, MaximumGenerationTermination, IGDTermination, \
     Termination, get_termination
 from pymoo.rand import random
@@ -38,35 +5,10 @@ from samoo import *
 
 
 def get_alorithm(name):
-    if name == 'ga':
-        from pymoo.algorithms.so_genetic_algorithm import SingleObjectiveGeneticAlgorithm
-        return SingleObjectiveGeneticAlgorithm
-    elif name == 'nsga2':
-        from pymoo.algorithms.nsga2 import NSGA2
-        return NSGA2
-    elif name == 'nsga3':
-        from pymoo.algorithms.nsga3 import NSGA3
-        return NSGA3
-    elif name == 'unsga3':
-        from pymoo.algorithms.unsga3 import UNSGA3
-        return UNSGA3
-    elif name == 'rnsga3':
-        from pymoo.algorithms.rnsga3 import RNSGA3
-        return RNSGA3
-    elif name == 'nsga3pp':
-        from pymoo.algorithms.nsga3pp import NSGA3PP
-        return NSGA3PP
-    elif name == 'moead':
-        from pymoo.algorithms.moead import MOEAD
-        return MOEAD
-    elif name == 'de':
-        from pymoo.algorithms.so_de import DifferentialEvolution
-        return DifferentialEvolution
-    elif name == 'samoo':
+    if name == 'samoo':
         return Samoo
     else:
         raise Exception("Algorithm not known.")
-
 
 def minimize(problem,
              method,

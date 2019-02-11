@@ -1,4 +1,3 @@
-from frameworks.factory import *
 from pymoo.model.population import Population
 from pymoo.algorithms.genetic_algorithm import GeneticAlgorithm
 from pymoo.model.individual import Individual

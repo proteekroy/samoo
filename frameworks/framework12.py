@@ -1,4 +1,4 @@
-from frameworks.factory import Framework, get_framework
+from frameworks.factory import Framework
 import copy
 from metamodels.regression_metamodel import GPRmodel, SVRmodel, KRRmodel
 from frameworks.normalize import NormalizeConstraint
