@@ -157,8 +157,13 @@ class SamooProblem(Problem):
         if self.problem.n_constr > 0:
             g[:, :] = out["G"]
 
-    def _evaluate(self, x, f, g, *args, **kwargs):
+    def _evaluate(self, x, out, *args, **kwargs):
+
+        f = np.zeros((x.shape[0], self.problem.n_obj))
+        g = np.zeros((x.shape[0], 1))
         self.framework.predict(x, f, g, *args, **kwargs)
+        out["F"] = f
+        out["G"] = g
 
 
 # class UnConstrainedProblem(Problem):

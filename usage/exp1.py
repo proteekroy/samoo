@@ -2,7 +2,7 @@ from optimize import minimize
 from pymoo.util import plotting
 from pymop.factory import get_problem
 from pymoo.util.reference_direction import UniformReferenceDirectionFactory
-from pymop.problems.g import *
+# from pymop.problems.g import *
 from model_loader import get_model
 
 # create the optimization problem
