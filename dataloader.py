@@ -7,22 +7,7 @@ import pickle
 import torchvision
 import torchvision.transforms as transforms
 import math
-
-class MyDataset(Dataset):
-    def __init__(self, index_tensor, data_tensor, target_tensor, sensitive_tensor):
-        Dataset.__init__(self)
-        assert data_tensor.size(0) == target_tensor.size(0)
-        self.data_tensor = data_tensor
-        self.target_tensor = target_tensor
-        self.sensitive_tensor = sensitive_tensor
-        self.index_tensor = index_tensor
-
-    def __getitem__(self, index):
-        return self.index_tensor[index], self.data_tensor[index], self.target_tensor[index], self.sensitive_tensor[index]
-
-    def __len__(self):
-
-        return self.data_tensor.size(0)
+from dataset import DatasetOpt
 
 
 class DataLoader:
@@ -65,6 +50,11 @@ class DataLoader:
         self.data_x = np.loadtxt('Test/'+str(problem_name)+'.x')
         self.data_f = np.loadtxt('Test/'+str(problem_name)+'.f')
         self.data_g = np.loadtxt('Test/'+str(problem_name)+'.cv')
+
+        self.data_x = (self.data_x - self.data_x.min(axis=0)) / (self.data_x.max(axis=0)+1e-16 - self.data_x.min(axis=0))
+        self.data_f = (self.data_f - self.data_f.min(axis=0)) / (self.data_f.max(axis=0)+1e-16 - self.data_f.min(axis=0))
+        self.data_g = (self.data_g - self.data_g.min(axis=0)) / (self.data_g.max(axis=0)+1e-16 - self.data_g.min(axis=0))
+
         n = math.ceil(self.data_x.shape[0] / 2)
 
         self.train_data_x = self.data_x[0:n, :]
@@ -101,8 +91,8 @@ class DataLoader:
         train_indices = torch.from_numpy(np.asarray(range(0, self.train_size)))
         test_indices = torch.from_numpy(np.asarray(range(0, self.test_size)))
 
-        self.trainset = MyDataset(train_indices, self.train_data_x, self.train_data_f, self.train_data_g)
-        self.testset = MyDataset(test_indices, self.test_data_x, self.test_data_f, self.test_data_g)
+        self.trainset = DatasetOpt(train_indices, self.train_data_x, self.train_data_f, self.train_data_g)
+        self.testset = DatasetOpt(test_indices, self.test_data_x, self.test_data_f, self.test_data_g)
 
         self.train_label_zero = (self.train_dominance_matrix == 0).sum()/(self.train_size*self.train_size)
         self.train_label_one = (self.train_dominance_matrix == 1).sum()/(self.train_size*self.train_size)

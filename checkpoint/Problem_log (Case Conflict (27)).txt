@@ -1,0 +1,2 @@
+Learning Rate	Train Loss	Test Loss	Train Acc.	Test Acc.	
+0.001000	0.704205	2.104583	56.777779	47.000000	

@@ -2,8 +2,11 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$USER_HOME$/Downloads/PyTorch-GAN-master/.idea/PyTorch-GAN-master.iml" filepath="$USER_HOME$/Downloads/PyTorch-GAN-master/.idea/PyTorch-GAN-master.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/RepresentationLearningOptimization.iml" filepath="$PROJECT_DIR$/.idea/RepresentationLearningOptimization.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../samoo/Test/.idea/Test.iml" filepath="$PROJECT_DIR$/../samoo/Test/.idea/Test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../samoo/__pycache__/.idea/__pycache__.iml" filepath="$PROJECT_DIR$/../samoo/__pycache__/.idea/__pycache__.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../samoo/checkpoint/.idea/checkpoint.iml" filepath="$PROJECT_DIR$/../samoo/checkpoint/.idea/checkpoint.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../samoo/.idea/samoo.iml" filepath="$PROJECT_DIR$/../samoo/.idea/samoo.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../samoo/utils/.idea/utils.iml" filepath="$PROJECT_DIR$/../samoo/utils/.idea/utils.iml" />
     </modules>
   </component>
 </project>
