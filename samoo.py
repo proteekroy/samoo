@@ -161,25 +161,10 @@ class SamooProblem(Problem):
 
         f = np.zeros((x.shape[0], self.problem.n_obj))
         g = np.zeros((x.shape[0], 1))
-        self.framework.predict(x, f, g, *args, **kwargs)
-        out["F"] = f
-        out["G"] = g
-
-
-# class UnConstrainedProblem(Problem):
-#
-#     def __init__(self, problem, framework, *args, **kwargs):
-#         self.problem = problem
-#         self.framework = framework
-#         super().__init__(n_var=problem.n_var, n_obj=problem.n_obj, n_constr=problem.n_constr, type_var=problem.type_var,
-#                          xl=problem.xl, xu=problem.xu)
-#
-#     def _evaluate_high_fidelity(self, x, f, g, *args, **kwargs):
-#         return self.problem._evaluate(x, f, g, *args, **kwargs)
-#
-#     def _evaluate(self, x, f, *args, **kwargs):
-#         g = np.zeros((x.shape[0], 1))
-#         self.framework.predict(x, f, g, *args, **kwargs)
+        out = dict()
+        self.framework.predict(x, out, *args, **kwargs)
+        # out["F"] = f
+        # out["G"] = g
 
 
 class SamooEvaluator(Evaluator):

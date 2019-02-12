@@ -26,5 +26,6 @@ def get_framework(framework_id=None,
         else:
             raise Exception("Framework not supported")
     else:
-        return FrameworkSwitching(framework_id, framework_crossval, problem, algorithm, curr_ref, model_list, *args, **kwargs)
+        return Framework12A(framework_id, framework_crossval, problem, algorithm, curr_ref, model_list, *args, **kwargs)
+        # return FrameworkSwitching(framework_id, framework_crossval, problem, algorithm, curr_ref, model_list, *args, **kwargs)
 

@@ -5,9 +5,17 @@ from frameworks.normalize import NormalizeConstraint
 
 
 class FrameworkHybrid(Framework):
-    def __init__(self, problem, curr_ref, model_list, *args, ** kwargs):
-        super().__init__(problem, curr_ref=curr_ref,
-                         model_list=model_list)
+    def __init__(self,
+                 framework_id=None,
+                 framework_crossval=None,
+                 problem=None,
+                 algorithm=None,
+                 curr_ref=None,
+                 model_list=None,
+                 *args,
+                 **kwargs
+                 ):
+        super().__init__(framework_id, framework_crossval, problem, algorithm, curr_ref, model_list, *args, **kwargs)
 
         self.model_list["z1"] = self.model_list["gpr"]
 
