@@ -9,7 +9,7 @@ from model_loader import get_model
 # problem_name = 'tnk'
 problem_name = 'zdt2'
 lf_algorithm = 'nsga3'
-framework_id = '12A'
+framework_id = '32'
 init_pop_size = 100
 pop_size_per_epoch = 100
 pop_size_lf = 100
@@ -24,8 +24,14 @@ if lf_algorithm == 'nsga3' and problem_name.__contains__('dtlz'):
 else:
     pf = problem.pareto_front()
 
+metamodel_list=dict()
+metamodel_list['f'] = 'gpr'
 
-model_list = get_model(framework_id=framework_id, problem=problem)
+model_list = get_model(framework_id=framework_id,
+                       problem=problem,
+                       metamodel_list=metamodel_list,
+                       uniform=True,
+                       n_dir=21)
 res = minimize(problem=problem,
                method='samoo',
                method_args={'framework_id': framework_id,
@@ -38,7 +44,7 @@ res = minimize(problem=problem,
                             'pop_size_per_epoch': pop_size_per_epoch,
                             'pop_size_lf': pop_size_lf
                             },
-               termination=('n_eval', 1000),
+               termination=('n_eval', 200),
                pf=pf,
                save_history=False,
                disp=True

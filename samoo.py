@@ -112,7 +112,8 @@ class Samoo(GeneticAlgorithm):
                                        framework_crossval=self.framework_crossval,
                                        problem=problem,
                                        algorithm=self,
-                                       curr_ref=self.ref_dirs[self.cur_ref_no, :],
+                                       ref_dirs=self.ref_dirs,
+                                       curr_ref_id=self.cur_ref_no,
                                        model_list=self.model_list)  # create frameworks
         self.samoo_problem = SamooProblem(problem=self.problem, framework=self.framework)  # problem wrapper
         temp_pop = self._each_iteration_samoo(pop, **kwargs)
@@ -158,13 +159,12 @@ class SamooProblem(Problem):
             g[:, :] = out["G"]
 
     def _evaluate(self, x, out, *args, **kwargs):
-
-        f = np.zeros((x.shape[0], self.problem.n_obj))
-        g = np.zeros((x.shape[0], 1))
-        out = dict()
-        self.framework.predict(x, out, *args, **kwargs)
-        # out["F"] = f
-        # out["G"] = g
+        # f = np.zeros((x.shape[0], self.problem.n_obj))
+        # g = np.zeros((x.shape[0], 1))
+        samoo_output = dict()
+        self.framework.predict(x, samoo_output, *args, **kwargs)
+        out["F"] = samoo_output['F']
+        out["G"] = samoo_output['G']
 
 
 class SamooEvaluator(Evaluator):

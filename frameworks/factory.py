@@ -45,9 +45,9 @@ class Framework:
     def prepare_aggregate_data(self, x = None, f = None, g = None, out=None,  *args, ** kwargs):
 
         if self.f_aggregate_func is not None:
-            if self.f_aggregate_func == 'asf':
+            if self.f_aggregate_func == 'asf_regular':
                 F = np.max(f / self.ref_dirs[self.curr_ref_id], axis=1)
-            elif self.f_aggregate_func == 'asf_parallel':
+            elif self.f_aggregate_func == 'asf':
                 F = np.max(f - self.ref_dirs[self.curr_ref_id], axis=1)
             else:
                 raise Exception('Aggregation function for objectives not defined.')
