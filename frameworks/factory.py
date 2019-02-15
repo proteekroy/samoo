@@ -42,7 +42,7 @@ class Framework:
     def predict(self, x, out, *args, **kwargs):
         pass
 
-    def prepare_aggregate_data(self, x = None, f = None, g = None, out=None,  *args, ** kwargs):
+    def prepare_aggregate_data(self, x=None, f=None, g=None, out=None,  *args, ** kwargs):
 
         if self.f_aggregate_func is not None:
             if self.f_aggregate_func == 'asf_regular':

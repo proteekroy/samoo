@@ -2,14 +2,14 @@ from optimize import minimize
 from pymoo.util import plotting
 from pymop.factory import get_problem
 from pymoo.util.reference_direction import UniformReferenceDirectionFactory
-# from pymop.problems.g import *
+from pymop.problems.g import *
 from model_loader import get_model
 
 # create the optimization problem
 # problem_name = 'tnk'
 problem_name = 'zdt2'
-lf_algorithm = 'nsga3'
-framework_id = '32'
+lf_algorithm = 'nsga2'
+framework_id = '11'
 init_pop_size = 100
 pop_size_per_epoch = 100
 pop_size_lf = 100
