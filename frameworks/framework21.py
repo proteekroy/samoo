@@ -10,6 +10,7 @@ class Framework21(Framework):
                  model_list=None,
                  ref_dirs=None,
                  curr_ref_id=None,
+                 f_aggregate_func='asf',
                  g_aggregate_func='acv',
                  *args,
                  **kwargs
@@ -20,6 +21,7 @@ class Framework21(Framework):
                          model_list=model_list,
                          ref_dirs=ref_dirs,
                          curr_ref_id=curr_ref_id,
+                         f_aggregate_func=f_aggregate_func,
                          g_aggregate_func=g_aggregate_func,
                          *args,
                          **kwargs)
@@ -31,7 +33,8 @@ class Framework21(Framework):
 
         if self.problem.n_constr > 0:
             out = dict()
-            self.prepare_aggregate_data(x=x, f=f, g=g, out=out)
+            self.prepare_aggregate_data(x=x, f=f, g=g,
+                                        g_aggregate=self.g_aggregate_func, out=out)
             self.model_list["G"].train(x, out['G'])
 
     def predict(self, x, out, *args, **kwargs):
@@ -48,5 +51,20 @@ class Framework21(Framework):
 
         g.append(_g)
 
-        out["F"] = np.column_stack(f)
-        out["G"] = np.column_stack(g)
+        F = np.column_stack(f)
+        G = np.column_stack(g)
+
+        a_out = dict()
+        Framework.prepare_aggregate_data(f=F,
+                                         g=G,
+                                         out=a_out,
+                                         f_aggregate=self.f_aggregate_func,
+                                         g_aggregate=None,
+                                         m5_fg_aggregate=None,
+                                         m6_fg_aggregate=None,
+                                         ref_dirs=self.ref_dirs,
+                                         curr_ref_id=self.curr_ref_id
+                                         )
+
+        out["F"] = a_out["F"]
+        out["G"] = G

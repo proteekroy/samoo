@@ -16,19 +16,19 @@ def get_model(framework_id=None, problem=None, metamodel_list=None, uniform=True
             for i in range(problem.n_obj):
                 model_list["f" + str(i + 1)] = return_metamodel_object(metamodel_name, problem)
 
+        if framework_id.lower() in ['11', '12', '31', '32']:
             for j in range(problem.n_constr):
                 model_list["g" + str(j + 1)] = return_metamodel_object(metamodel_name, problem)
 
-        elif framework_id.lower() in ['31', '32', '41', '42']:
+        if framework_id.lower() in ['21', '22', '41', '42']:
+
+            model_list["G"] = return_metamodel_object(metamodel_name, problem)
+
+        if framework_id.lower() in ['31', '32', '41', '42']:
 
             for i in range(n_dir):
                 model_list["f" + str(i + 1)] = return_metamodel_object(metamodel_name, problem)
 
-            if framework_id.lower() in ['31', '41']:
-                for j in range(problem.n_constr):
-                    model_list["g" + str(j + 1)] = return_metamodel_object(metamodel_name, problem)
-            else:
-                model_list["G"] = return_metamodel_object(metamodel_name, problem)
     else:
         raise Exception('Different metamodels for different functions is not supported.')
 

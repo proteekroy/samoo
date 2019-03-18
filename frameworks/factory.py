@@ -42,18 +42,33 @@ class Framework:
     def predict(self, x, out, *args, **kwargs):
         pass
 
-    def prepare_aggregate_data(self, x=None, f=None, g=None, out=None,  *args, ** kwargs):
+    def set_current_reference(self, curr_ref_id):
+        self.curr_ref_id = curr_ref_id
 
-        if self.f_aggregate_func is not None:
-            if self.f_aggregate_func == 'asf_regular':
-                F = np.max(f / self.ref_dirs[self.curr_ref_id], axis=1)
-            elif self.f_aggregate_func == 'asf':
-                F = np.max(f - self.ref_dirs[self.curr_ref_id], axis=1)
+    @staticmethod
+    def prepare_aggregate_data(x=None,
+                               f=None,
+                               g=None,
+                               out=None,
+                               f_aggregate=None,
+                               g_aggregate=None,
+                               m5_fg_aggregate=None,
+                               m6_fg_aggregate=None,
+                               ref_dirs=None,
+                               curr_ref_id=None,
+                               *args,
+                               ** kwargs):
+
+        if f_aggregate is not None:
+            if f_aggregate == 'asf_regular':
+                F = np.max(f / ref_dirs[curr_ref_id], axis=1)
+            elif f_aggregate == 'asf':  # parallel
+                F = np.max(f - ref_dirs[curr_ref_id], axis=1)
             else:
                 raise Exception('Aggregation function for objectives not defined.')
             out['F'] = F
 
-        if self.g_aggregate_func is not None:
+        if g_aggregate is not None:
             cv = np.copy(g)
             index = np.any(g > 0, axis=1)
             cv[g <= 0] = 0
@@ -61,29 +76,35 @@ class Framework:
             acv = np.sum(g, axis=1)
             acv[index] = np.copy(cv[index])
 
-            if self.g_aggregate_func == 'cv':
+            if g_aggregate == 'cv':
                 G = np.vstack(np.asarray(cv).flatten())
-            elif self.g_aggregate_func == 'acv':
+            elif g_aggregate == 'acv':
                 G = np.vstack(np.asarray(acv).flatten())
             else:
                 raise Exception('Aggregation function for constraints not defined.')
 
             out['G'] = G
 
-        if self.m5_fg_aggregate_func is not None:
-            F = np.max(f - self.ref_dirs[self.curr_ref_id], axis=1)
-            cv = np.copy(g)
-            cv[g <= 0] = 0
-            cv = np.sum(cv, axis=1)
-            out['S5'] = F+cv
+        if m5_fg_aggregate is not None:
+            if m5_fg_aggregate == 'asfcv':
+                F = np.max(f - ref_dirs[curr_ref_id], axis=1)
+                cv = np.copy(g)
+                cv[g <= 0] = 0
+                cv = np.sum(cv, axis=1)
+                out['S5'] = F+cv
+            else:
+                out['S5'] = None
 
-        if self.m6_fg_aggregate_func is not None:
-            F = np.zeros([f.shape[0], self.ref_dirs.shape[1]])
-            for i in range(len(self.ref_dirs)):
-                F[:, i] = np.max(f - self.ref_dirs[self.curr_ref_id], axis=1)
+        if m6_fg_aggregate is not None:
+            if m6_fg_aggregate == 'minasfcv':
+                F = np.zeros([f.shape[0], ref_dirs.shape[1]])
+                for i in range(len(ref_dirs)):
+                    F[:, i] = np.max(f - ref_dirs[curr_ref_id], axis=1)
 
-            F = np.min(F, axis=1)
-            cv = np.copy(g)
-            cv[g <= 0] = 0
-            cv = np.sum(cv, axis=1)
-            out['S6'] = F+cv
+                F = np.min(F, axis=1)
+                cv = np.copy(g)
+                cv[g <= 0] = 0
+                cv = np.sum(cv, axis=1)
+                out['S6'] = F+cv
+            else:
+                out['S6'] = None

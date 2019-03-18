@@ -10,6 +10,7 @@ from frameworks.framework5 import Framework5
 from frameworks.framework6 import Framework6
 from frameworks.framework_hybrid import *
 
+
 def get_framework(framework_id=None,
                   problem=None,
                   algorithm=None,

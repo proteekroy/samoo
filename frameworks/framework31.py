@@ -26,7 +26,10 @@ class Framework31(Framework):
 
     def train(self, x, f, g, *args, **kwargs):
         out = dict()
-        self.prepare_aggregate_data(x=x, f=f, g=g, out=out)
+        self.prepare_aggregate_data(x=x, f=f, g=g,
+                                    ref_dirs=self.ref_dirs,
+                                    curr_ref_id=self.curr_ref_id,
+                                    f_aggregate=self.f_aggregate_func, out=out)
 
         self.model_list["f"+str(self.curr_ref_id+1)].train(x, out['F'])
 

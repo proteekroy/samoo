@@ -5,8 +5,10 @@ from samoo import *
 
 
 def get_alorithm(name):
-    if name == 'samoo':
-        return Samoo
+    if name == 'simultaneous':
+        return Simultaneous
+    elif name == 'generative':
+        return Generative
     else:
         raise Exception("Algorithm not known.")
 

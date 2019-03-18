@@ -5,6 +5,23 @@ from sklearn.svm import SVR
 from sklearn.kernel_ridge import KernelRidge
 from sklearn.model_selection import GridSearchCV
 from metamodels.neural_metamodel import MetaModel
+from pydacefit.corr import corr_gauss
+from pydacefit.dace import DACE
+from pydacefit.regr import regr_constant
+
+
+class DacefitGP(MetaModel):
+    def __init__(self):
+        super().__init__()
+
+    def train(self, input, target, *args, **kwargs):
+        self.model = DACE(regr=regr_constant, corr=corr_gauss, theta=1.0, tl=0.00001, tu=100)
+        self.model.fit(input, target)
+
+    def predict(self, x, *args, **kwargs):
+        out = self.model.predict(x)
+
+        return out
 
 
 class GPRmodel(MetaModel):
@@ -21,22 +38,22 @@ class GPRmodel(MetaModel):
         ker_rq = ConstantKernel(1.0, (1e-3, 1e3)) * RationalQuadratic(alpha=0.1, length_scale=1)
         # ker_expsine = ConstantKernel(1.0, constant_value_bounds="fixed") * ExpSineSquared(1.0, 5.0, periodicity_bounds=(1e-2, 1e1))
         # kernel_list = [ker_rbf, ker_rq]
-        kernel_list = [ker_rbf]
 
-        param_grid = {"kernel": kernel_list,
-                      "alpha": [1e-10, 1e-2, 1e-1, 1e1, 1e2],
-                      "optimizer": ["fmin_l_bfgs_b"],
-                      "n_restarts_optimizer": [10],
-                      "normalize_y": [False],
-                      "copy_X_train": [True],
-                      "random_state": [0]}
-
-        gp = GaussianProcessRegressor()
-        self.model = GridSearchCV(gp, param_grid=param_grid)
+        # kernel_list = [ker_rbf]
+        # param_grid = {"kernel": kernel_list,
+        #               "alpha": [1e-10, 1e-2, 1e-1, 1e1, 1e2],
+        #               "optimizer": ["fmin_l_bfgs_b"],
+        #               "n_restarts_optimizer": [10],
+        #               "normalize_y": [False],
+        #               "copy_X_train": [True],
+        #               "random_state": [0]}
+        #
+        # gp = GaussianProcessRegressor()
+        # self.model = GridSearchCV(gp, param_grid=param_grid)
         # grid_search.fit(X, y)
         # self.model = GridSearchCV(GaussianProcessRegressor(kernel=self.kernel, n_restarts_optimizer=self.n_restarts_optimizer, alpha=self.alpha), cv=5,
         #                           param_grid={"C": [1e0, 1e1, 1e2, 1e3], "gamma": np.logspace(-2, 2, 5)})
-        # self.model = GaussianProcessRegressor(kernel=self.kernel, n_restarts_optimizer=self.n_restarts_optimizer, alpha=self.alpha)
+        self.model = GaussianProcessRegressor(kernel=self.kernel, n_restarts_optimizer=1, alpha=self.alpha)
         self.model.fit(input, target)
 
     def predict(self, x, *args, **kwargs):
