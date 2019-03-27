@@ -10,12 +10,15 @@ from pymoo.util.display import disp_multi_objective
 from pymoo.util.non_dominated_sorting import NonDominatedSorting
 from pymoo.algorithms.nsga3 import ReferenceDirectionSurvival, comp_by_cv_then_random
 from pymop.problems import *
-from pymoo.optimize import minimize
+# from pymoo.optimize import minimize
 from pymoo.model.evaluator import Evaluator
 from frameworks.get_framework import get_framework
 from frameworks.factory import Framework
 import sys
 import numpy as np
+from pymoo.model.termination import MaximumFunctionCallTermination, MaximumGenerationTermination, IGDTermination, \
+        Termination, get_termination
+from pymoo.rand import random
 from abc import abstractmethod
 
 
@@ -34,67 +37,59 @@ class Samoo(GeneticAlgorithm):
                  init_pop_size=None,
                  pop_size_per_epoch=None,
                  pop_size_lf=None,
+                 n_gen_lf=100,
                  **kwargs):
-        self.init_pop_size = init_pop_size
-        self.pop_size_lf = pop_size_lf  # lf = low-fidelity
-        self.pop_size_per_epoch = pop_size_per_epoch
-        self.framework_crossval = 10
-        self.n_gen_lf = 200
-        self.framework_id = framework_id
-        self.model_list = model_list
-        self.ref_dirs = ref_dirs
-        self.cur_ref_no = 0
-        self.disp = disp
-        self.lf_algorithm = lf_algorithm
-
         kwargs['individual'] = Individual(rank=np.inf, niche=-1, dist_to_niche=np.inf)
-        set_if_none(kwargs, 'pop_size', self.init_pop_size)
+        set_if_none(kwargs, 'pop_size', init_pop_size)
         set_if_none(kwargs, 'sampling', RandomSampling())
-        set_if_none(kwargs, 'crossover', SimulatedBinaryCrossover(prob_cross=1.0, eta_cross=30))
+        set_if_none(kwargs, 'crossover', SimulatedBinaryCrossover(prob_cross=1.0, eta_cross=15))
         set_if_none(kwargs, 'mutation', PolynomialMutation(prob_mut=None, eta_mut=20))
         set_if_none(kwargs, 'selection', TournamentSelection(func_comp=comp_by_cv_then_random))
         set_if_none(kwargs, 'survival', ReferenceDirectionSurvival(ref_dirs))
         set_if_none(kwargs, 'eliminate_duplicates', True)
-        # set_if_none(kwargs, 'evaluator', SamooEvaluator())
+        set_if_none(kwargs, 'disp', disp)
+        super().__init__(**kwargs)
+
+        self.func_display_attrs = disp_multi_objective
+        self.init_pop_size = init_pop_size
+        self.pop_size_lf = pop_size_lf
+        self.pop_size_per_epoch = pop_size_per_epoch
+        self.framework_crossval = 10
+        self.n_gen_lf = n_gen_lf
+        self.framework_id = framework_id
+        self.model_list = model_list
+        self.ref_dirs = ref_dirs
+        self.cur_ref_no = 0
+        self.lf_algorithm = lf_algorithm
         self.problem = None
         self.archive = None
         self.metamodel = None
         self.pop = None
         self.samoo_evaluator = SamooEvaluator()
-        super().__init__(**kwargs)
-        self.func_display_attrs = disp_multi_objective
 
     def _solve(self, problem, termination):
         if self.ref_dirs.shape[1] != problem.n_obj:
             raise Exception(
                 "Dimensionality of reference points must be equal to the number of objectives: %s != %s" %
                 (self.ref_dirs.shape[1], problem.n_obj))
-
         return self.__solve(problem, termination)
 
     def __solve(self, problem, termination):
-
-        # generation counter
-        self.n_gen = 1
-        # initialize the first population and evaluate it
-        self.pop = self._initialize()
+        self.n_gen = 1  # generation counter
+        self.pop = self._initialize()  # initialize the first population and evaluate it
         self.pop_size = np.min([self.pop_size_lf, self.pop_size_per_epoch])
         self._init_samoo(problem, self.pop.get("X"))
-        # super().pop = self.pop
         self.evaluator.n_eval = self.samoo_evaluator.n_eval
         self._each_iteration(self, first=True)
+        self.samoo_evaluator.n_max_eval = termination.n_max_evals
 
         # while termination criterium not fulfilled
         while termination.do_continue(self):
-            # do the next iteration
-            model_pop_X = self._next()
-            # callback for samoo
-            self.pop = self._each_iteration_samoo(model_pop_X)
-            # update counters
-            self.n_gen += 1
+            model_pop_X = self._next()  # do the next iteration
+            self.pop = self._each_iteration_samoo(model_pop_X)  # callback for samoo
+            self.n_gen += 1  # update generation counters
             self.evaluator.n_eval = self.samoo_evaluator.n_eval
-            # execute the callback function in the end of each generation
-            self._each_iteration(self)
+            self._each_iteration(self)  # execute the callback function in the end of each generation
 
         self._finalize()
 
@@ -120,18 +115,6 @@ class Samoo(GeneticAlgorithm):
         self.func_eval = self.archive['x'].shape[0]
 
     def _each_iteration_samoo(self, X, **kwargs):
-
-        # if not isinstance(pop, Individual):
-        #     if self.pop_size_per_epoch > len(pop):
-        #         pop = self.candidate_select(ref_dirs=self.ref_dirs, pop=pop)
-        #
-        # if isinstance(pop, Individual):
-        #     X = pop.X
-        # elif isinstance(pop, Population):
-        # X = pop.get("X")
-        # else:
-        #     X = pop
-
         self.archive = self.samoo_evaluator.eval(problem=self.samoo_problem, x=X, archive=self.archive)
         temp_pop = Population(0, individual=Individual())
         temp_pop = temp_pop.new("X", self.archive['x'], "F", self.archive['f'], "CV", self.archive['cv'], "G", self.archive['g'], "feasible", self.archive['feasible_index'])
@@ -142,14 +125,18 @@ class Samoo(GeneticAlgorithm):
     def _next(self):
 
         self.framework.train(x=self.archive["x"], f=self.archive["f"], g=self.archive["g"])
-        res = minimize(problem=self.samoo_problem,
+        res = lf_minimize(problem=self.samoo_problem,
                                method=self.lf_algorithm,
                                method_args={'pop_size': self.pop_size_lf, 'ref_dirs': self.ref_dirs},
                                termination=('n_gen', self.n_gen_lf),
                                pf=self.pf,
                                save_history=False,
                                disp=False)
-        return res.pop.get("X")
+        if self.pop_size_per_epoch < len(res.pop):
+            pop = self.candidate_select(ref_dirs=self.ref_dirs, pop=res.pop)
+            return pop.get("X")
+        else:
+            return res.pop.get("X")
 
     def candidate_select(self, ref_dirs=None, pop=None):
 
@@ -166,25 +153,60 @@ class Samoo(GeneticAlgorithm):
                     pop = pop[np.argmin(pop.get("CV"))]
             return pop
 
-        a_out = dict()
         out_pop = []
-        for i in range(len(ref_dirs)):
 
-            Framework.prepare_aggregate_data(f=pop.get("F"),
-                                             g=pop.get("G"),
-                                             out=a_out,
-                                             f_aggregate='asf',
-                                             g_aggregate=None,
-                                             m5_fg_aggregate='asfcv',
-                                             ref_dirs=ref_dirs,
-                                             curr_ref_id=i)
-            index = np.argsort(a_out['S5'])
-            j = 0
-            while pop[index[j]] in out_pop:
-                j += 1
-            out_pop.append(pop[index[j]])
+        if self.framework_id in ['32', '42']:
 
-        return np.column_stack(out_pop)
+            f = pop.get("F")
+            cv = pop.get("CV")
+            feasible_index = (cv <= 0).flatten()  # find feasible index
+            infeasible_index = (cv > 0).flatten()
+            size = np.sum(infeasible_index)
+            if size > 1:
+                worst_of_all_ref_dir = np.max(f[feasible_index])
+                val_infeasible_sol = cv[infeasible_index] + worst_of_all_ref_dir
+                f[infeasible_index, :] = np.tile(val_infeasible_sol, (1, f.shape[1]))
+
+
+            # g = pop.get("G")
+            # feasible_index = np.any(g <= 0, axis=1)  # find feasible index
+            # infeasible_index = np.any(g > 0, axis=1)
+            # # find worst of all reference dir among feasible solutions
+            # f = pop.get("F")
+            #
+            # if np.any(infeasible_index):
+            #     worst_of_all_ref_dir = np.max(f[feasible_index])
+            #     cv = np.copy(g)
+            #     cv[g <= 0] = 0
+            #     cv = np.sum(cv, axis=1)
+            #     val_infeasible_sol = cv[infeasible_index] + worst_of_all_ref_dir
+            #     f[infeasible_index, :] = np.tile(val_infeasible_sol, (f.shape[1], 1)).transpose()
+
+            for i in range(len(ref_dirs)):
+                index = np.argsort(f[:, i])
+                j = 0
+                while index[j] in out_pop:
+                    j += 1
+                out_pop.append(index[j])
+
+        else:
+
+            a_out = dict()
+            for i in range(len(ref_dirs)):
+
+                Framework.prepare_aggregate_data(f=pop.get("F"),
+                                                 g=pop.get("G"),
+                                                 out=a_out,
+                                                 m5_fg_aggregate='asfcv',
+                                                 ref_dirs=ref_dirs,
+                                                 curr_ref_id=i)
+                index = np.argsort(a_out['S5'])
+                j = 0
+                while index[j] in out_pop:
+                    j += 1
+                out_pop.append(index[j])
+
+        return pop[out_pop]  # np.row_stack(out_pop)
 
 
 class Simultaneous(Samoo):
@@ -196,9 +218,10 @@ class Simultaneous(Samoo):
                  init_pop_size=100,
                  pop_size_per_epoch=100,
                  pop_size_lf=100,
+                 n_gen_lf=200,
                  **kwargs):
         super().__init__(ref_dirs, framework_id, model_list, disp, lf_algorithm, init_pop_size,
-                                         pop_size_per_epoch, pop_size_lf, **kwargs)
+                                         pop_size_per_epoch, pop_size_lf, n_gen_lf, **kwargs)
 
 
 class Generative(Samoo):
@@ -211,13 +234,14 @@ class Generative(Samoo):
                  init_pop_size=100,
                  pop_size_per_epoch=100,
                  pop_size_lf=100,
+                 n_gen_lf=100,
                  **kwargs):
         super().__init__(ref_dirs, framework_id, model_list, disp, lf_algorithm, init_pop_size,
-                                         pop_size_per_epoch, pop_size_lf, **kwargs)
+                                         pop_size_per_epoch, pop_size_lf, n_gen_lf, **kwargs)
 
     def _next(self):
 
-        if self.framework.framework_id in  ['11', '21']:
+        if self.framework.framework_id in ['11', '21']:
             self.framework.train(x=self.archive["x"], f=self.archive["f"], g=self.archive["g"])
 
         out_pop_X = []
@@ -225,10 +249,10 @@ class Generative(Samoo):
             self.cur_ref_no = i
             self.framework.set_current_reference(self.cur_ref_no)
 
-            if self.framework.framework_id in ['31', '41']:
+            if self.framework.framework_id in ['31', '41', '5']:
                 self.framework.train(x=self.archive["x"], f=self.archive["f"], g=self.archive["g"])
 
-            res = minimize(problem=self.samoo_problem,
+            res = lf_minimize(problem=self.samoo_problem,
                                    method=self.lf_algorithm,
                                    method_args={'pop_size': self.pop_size_lf, 'ref_dirs': self.ref_dirs},
                                    termination=('n_gen', self.n_gen_lf),
@@ -237,6 +261,8 @@ class Generative(Samoo):
                                    disp=False)
 
             if np.any(res.pop.get("CV") <= 0):
+                I = res.pop.get("CV") <= 0
+                res.pop = res.pop[I.flatten()]
                 ind = res.pop[np.argmin(res.pop.get("F"))]
             else:
                 ind = res.pop[np.argmin(res.pop.get("CV"))]
@@ -276,6 +302,7 @@ class SamooEvaluator(Evaluator):
     def __init__(self):
         super(SamooEvaluator, self).__init__()
         self.n_eval = 0
+        self.n_max_eval = np.inf
 
     def eval(self, problem=None, x=None, archive=None, **kwargs):
         if x.ndim == 1:
@@ -285,6 +312,15 @@ class SamooEvaluator(Evaluator):
             n = x.shape[0]
         f = np.zeros((n, problem.n_obj))
         g = np.zeros((n, np.max([problem.n_constr, 1])))
+
+        if self.n_eval + x.shape[0] > self.n_max_eval:
+            rest = self.n_max_eval - self.n_eval
+            I = np.random.permutation(x.shape[0])
+            I = I[:rest]
+            x = x[I]
+            f = f[I]
+            g = g[I]
+
         problem._evaluate_high_fidelity(x=x, f=f, g=g)
 
         archive['x'] = np.concatenate((x, archive['x']), axis=0)
@@ -296,7 +332,7 @@ class SamooEvaluator(Evaluator):
         cv = np.sum(cv, axis=1)
         acv = np.sum(archive['g'], axis=1)
         acv[index] = np.copy(cv[index])
-        archive['feasible_index'] = cv == 0
+        archive['feasible_index'] = cv <= 0
         archive['feasible_index'] = np.vstack(np.asarray(archive['feasible_index']).flatten())
         archive['cv'] = np.vstack(np.asarray(cv).flatten())
         archive['acv'] = np.vstack(np.asarray(acv).flatten())
@@ -311,3 +347,84 @@ class SamooEvaluator(Evaluator):
 
         self.n_eval = archive["x"].shape[0]
         return archive
+
+
+def lf_get_alorithm(name):
+    if name == 'ga':
+        from pymoo.algorithms.so_genetic_algorithm import SingleObjectiveGeneticAlgorithm
+        return SingleObjectiveGeneticAlgorithm
+    elif name == 'nsga2':
+        from pymoo.algorithms.nsga2 import NSGA2
+        return NSGA2
+    elif name == 'nsga3':
+        from pymoo.algorithms.nsga3 import NSGA3
+        return NSGA3
+    elif name == 'unsga3':
+        from pymoo.algorithms.unsga3 import UNSGA3
+        return UNSGA3
+    elif name == 'rnsga3':
+        from pymoo.algorithms.rnsga3 import RNSGA3
+        return RNSGA3
+    elif name == 'moead':
+        from pymoo.algorithms.moead import MOEAD
+        return MOEAD
+    elif name == 'de':
+        from pymoo.algorithms.so_de import DifferentialEvolution
+        return DifferentialEvolution
+    elif name == 'rga_x':
+        from algorithms.rga_x import RGATournamentSurvivalAlgorithm
+        return RGATournamentSurvivalAlgorithm
+    elif name == 'mm_rga':
+        from algorithms.mm_rga import MMRGA
+        return MMRGA
+    else:
+        raise Exception("Algorithm not known.")
+
+
+def lf_minimize(problem,
+             method,
+             method_args={},
+             termination=('n_gen', 200),
+             **kwargs):
+    """
+
+    Minimization of function of one or more variables, objectives and constraints.
+
+    This is used as a convenience function to execute several algorithms with default settings which turned
+    out to work for a test problems. However, evolutionary computations utilizes the idea of customizing a
+    meta-algorithm. Customizing the algorithm using the object oriented interface is recommended to improve the
+    convergence.
+
+    Parameters
+    ----------
+
+    problem : pymop.problem
+        A problem object defined using the pymop framework. Either existing test problems or custom problems
+        can be provided. please have a look at the documentation.
+    method : string
+        Algorithm that is used to solve the problem.
+    method_args : dict
+        Additional arguments to initialize the algorithm object
+    termination : tuple
+        The termination criterium that is used to stop the algorithm when the result is satisfying.
+
+    Returns
+    -------
+    res : Result
+        The optimization result represented as a ``Result`` object.
+
+    """
+
+    # create an evaluator defined by the termination criterium
+    if not isinstance(termination, Termination):
+        termination = get_termination(*termination, pf=kwargs.get('pf', None))
+
+    # set a random random seed if not provided
+    if 'seed' not in kwargs:
+        kwargs['seed'] = random.randint(1, 10000)
+
+    algorithm = lf_get_alorithm(method)(**method_args)
+    res = algorithm.solve(problem, termination, **kwargs)
+
+    return res
+

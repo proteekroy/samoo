@@ -7,7 +7,7 @@ from sklearn.model_selection import GridSearchCV
 from metamodels.neural_metamodel import MetaModel
 from pydacefit.corr import corr_gauss
 from pydacefit.dace import DACE
-from pydacefit.regr import regr_constant
+from pydacefit.regr import regr_constant, regr_linear, regr_quadratic
 
 
 class DacefitGP(MetaModel):
@@ -15,7 +15,7 @@ class DacefitGP(MetaModel):
         super().__init__()
 
     def train(self, input, target, *args, **kwargs):
-        self.model = DACE(regr=regr_constant, corr=corr_gauss, theta=1.0, tl=0.00001, tu=100)
+        self.model = DACE(regr=regr_quadratic, corr=corr_gauss, theta=1.0, tl=0.00001, tu=100)
         self.model.fit(input, target)
 
     def predict(self, x, *args, **kwargs):

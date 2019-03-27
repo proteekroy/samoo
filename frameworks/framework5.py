@@ -27,7 +27,8 @@ class Framework5(Framework):
     def train(self, x, f, g, *args, **kwargs):
 
         out = dict()
-        self.prepare_aggregate_data(x=x, f=f, g=g, out=out)
+        self.prepare_aggregate_data(x=x, f=f, g=g, out=out, ref_dirs=self.ref_dirs,
+                                    m5_fg_aggregate=self.m5_fg_aggregate_func, curr_ref_id=self.curr_ref_id)
         self.model_list["f" + str(self.curr_ref_id + 1)].train(x, out['S5'])
 
     def predict(self, x, out, *args, **kwargs):

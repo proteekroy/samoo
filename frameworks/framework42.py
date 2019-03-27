@@ -28,14 +28,20 @@ class Framework42(Framework):
 
     def train(self, x, f, g, *args, **kwargs):
 
+        out = dict()
         for i in range(len(self.ref_dirs)):
-            out = dict()
-            self.prepare_aggregate_data(x=x, f=f, g=g, out=out)
-            self.model_list["f"+str(i+1)].train(x, out['F'])
+            self.prepare_aggregate_data(x=x,
+                                        f=f,
+                                        g=g,
+                                        out=out,
+                                        f_aggregate='asf',
+                                        ref_dirs=self.ref_dirs,
+                                        curr_ref_id=i)
+            self.model_list["f" + str(i + 1)].train(x, out['F'])
 
         if self.problem.n_constr > 0:
             out = dict()
-            self.prepare_aggregate_data(x=x, f=f, g=g, out=out)
+            self.prepare_aggregate_data(x=x, f=f, g=g, g_aggregate=self.g_aggregate_func, out=out)
             self.model_list["G"].train(x, out['G'])
 
     def predict(self, x, out, *args, **kwargs):

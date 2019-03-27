@@ -60,10 +60,11 @@ class Framework:
                                ** kwargs):
 
         if f_aggregate is not None:
+            f_normalized = (f - np.min(f, axis=0)) / (np.max(f, axis=0) - np.min(f, axis=0))
             if f_aggregate == 'asf_regular':
-                F = np.max(f / ref_dirs[curr_ref_id], axis=1)
+                F = np.max(f_normalized / ref_dirs[curr_ref_id], axis=1)
             elif f_aggregate == 'asf':  # parallel
-                F = np.max(f - ref_dirs[curr_ref_id], axis=1)
+                F = np.max(f_normalized - ref_dirs[curr_ref_id], axis=1)
             else:
                 raise Exception('Aggregation function for objectives not defined.')
             out['F'] = F
@@ -87,7 +88,8 @@ class Framework:
 
         if m5_fg_aggregate is not None:
             if m5_fg_aggregate == 'asfcv':
-                F = np.max(f - ref_dirs[curr_ref_id], axis=1)
+                f_normalized = (f - np.min(f, axis=0)) / (np.max(f, axis=0) - np.min(f, axis=0))
+                F = np.max(f_normalized - ref_dirs[curr_ref_id], axis=1)
                 cv = np.copy(g)
                 cv[g <= 0] = 0
                 cv = np.sum(cv, axis=1)
@@ -96,7 +98,15 @@ class Framework:
                 out['S5'] = None
 
         if m6_fg_aggregate is not None:
-            if m6_fg_aggregate == 'minasfcv':
+
+            if m6_fg_aggregate == 'asfcv':
+                f_normalized = (f - np.min(f, axis=0)) / (np.max(f, axis=0) - np.min(f, axis=0))
+                F = np.max(f_normalized - ref_dirs[curr_ref_id], axis=1)
+                cv = np.copy(g)
+                cv[g <= 0] = 0
+                cv = np.sum(cv, axis=1)
+                out['S6'] = F+cv
+            elif m6_fg_aggregate == 'minasfcv':
                 F = np.zeros([f.shape[0], ref_dirs.shape[1]])
                 for i in range(len(ref_dirs)):
                     F[:, i] = np.max(f - ref_dirs[curr_ref_id], axis=1)

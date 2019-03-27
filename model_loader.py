@@ -1,7 +1,7 @@
 from metamodels.siamese_net import SiameseMetamodel
 from metamodels.nn_models import SiameseNet, ConstraintNet, ConstraintNet2
 from metamodels.constraint_net import ConstraintMetamodel
-from metamodels.regression_metamodel import GPRmodel, SVRmodel, KRRmodel
+from metamodels.regression_metamodel import GPRmodel, SVRmodel, KRRmodel, DacefitGP
 
 
 def get_model(framework_id=None, problem=None, metamodel_list=None, uniform=True, n_dir=-1):
@@ -24,7 +24,7 @@ def get_model(framework_id=None, problem=None, metamodel_list=None, uniform=True
 
             model_list["G"] = return_metamodel_object(metamodel_name, problem)
 
-        if framework_id.lower() in ['31', '32', '41', '42']:
+        if framework_id.lower() in ['31', '32', '41', '42', '5', '6']:
 
             for i in range(n_dir):
                 model_list["f" + str(i + 1)] = return_metamodel_object(metamodel_name, problem)
@@ -36,7 +36,10 @@ def get_model(framework_id=None, problem=None, metamodel_list=None, uniform=True
 
 
 def return_metamodel_object(metamodel_name, problem):
-    if metamodel_name == 'gpr':
+
+    if metamodel_name == 'dacefit':
+        return DacefitGP()
+    elif metamodel_name == 'gpr':
         return GPRmodel()
     elif metamodel_name == 'krr':
         return KRRmodel()

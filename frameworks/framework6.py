@@ -27,14 +27,27 @@ class Framework6(Framework):
     def train(self, x, f, g, *args, **kwargs):
 
         out = dict()
-        self.prepare_aggregate_data(x=x, f=f, g=g, out=out)
-        self.model_list["f" + str(self.curr_ref_id + 1)].train(x, out['S6'])
+        # self.prepare_aggregate_data(x=x, f=f, g=g, out=out,  m6_fg_aggregate=self.m6_fg_aggregate_func)
+        # self.model_list["f" + str(self.curr_ref_id + 1)].train(x, out['S6'])
+        for i in range(len(self.ref_dirs)):
+            self.prepare_aggregate_data(x=x,
+                                        f=f,
+                                        g=g,
+                                        out=out,
+                                        ref_dirs=self.ref_dirs,
+                                        curr_ref_id=i,
+                                        m6_fg_aggregate=self.m6_fg_aggregate_func)
+            self.model_list["f" + str(i + 1)].train(x, out['S6'])
 
     def predict(self, x, out, *args, **kwargs):
         f = []
         g = []
-        _f = self.model_list["f" + str(self.curr_ref_id + 1)].predict(x)
-        f.append(_f)
+        # _f = self.model_list["f" + str(self.curr_ref_id + 1)].predict(x)
+        # f.append(_f)
+        for i in range(len(self.ref_dirs)):
+            _f = self.model_list["f"+str(i+1)].predict(x)
+            f.append(_f)
+
         _g = np.zeros(x.shape[0])
         g.append(_g)
 
