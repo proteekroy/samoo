@@ -6,18 +6,24 @@ from model_loader import get_acq_function
 import numpy as np
 from collections import defaultdict
 
-lf_algorithm_list = ['nsga2']
-framework_id = ['11', '12'] #, '12', '21', '22', '31', '5', '6A', '6B']  # ['6A', '6B']
+lf_algorithm_list = ['rga_x']  # ['nsga2', 'rga_x']
+framework_id = ['11']  # '12', '21', '22', '31', '5', '6A', '6B']  # ['6A', '6B']
 aggregation = defaultdict(list)
+aggregation['l'] = []
+aggregation['G'] = []
+aggregation['fg_M5'] = []
+aggregation['fg_M6'] = []
+
+
 aggregation['l'].append('asf')
-aggregation['G'].append('cv')
 aggregation['G'].append('acv')
 aggregation['fg_M5'].append('asfcv')
-aggregation['fg_M6'].append('minasfcv')
+aggregation['fg_M6'].append('asfcv')
 metamodel_list = ['dacefit']
 
 init_pop_size = 100
 pop_size_per_epoch = 21
+pop_size_per_algorithm = 21
 pop_size_lf = 100
 
 problem_name = 'tnk'
@@ -38,7 +44,7 @@ acq_list, framework_acq_dict = get_acq_function(framework_id=framework_id,
 
 res = minimize(problem=problem,
                method='samoo',
-               method_args={# 'seed': 53,
+               method_args={'seed': 53,
                             'method': 'samoo',
                             'framework_id': framework_id,
                             'ref_dirs': ref_dirs,
@@ -49,13 +55,17 @@ res = minimize(problem=problem,
                             'lf_algorithm_list': lf_algorithm_list,
                             'init_pop_size': init_pop_size,
                             'pop_size_per_epoch': pop_size_per_epoch,
+                            'pop_size_per_algorithm':pop_size_per_algorithm,
                             'pop_size_lf': pop_size_lf,
                             'n_gen_lf': 100,
                             'n_split': 2
                             },
-               termination=('n_eval', 300),
+               termination=('n_eval', 800),
                pf=pf,
                save_history=False,
                disp=True
                )
 plotting.plot(pf, res.F, labels=["Pareto-front", "F"])
+# filename = '/results/'+problem_name
+# np.savetxt(filename+".F", res.pop.get("F"))
+# np.savetxt(filename+".X", res.pop.get("X"))

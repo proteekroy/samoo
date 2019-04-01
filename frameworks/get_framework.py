@@ -24,7 +24,7 @@ def get_framework(framework_id=None,
                   **kwargs):
     frameworks = framework_id.split(',')
     if len(frameworks) == 1:
-        if framework_id.lower() in ['11']:
+        if framework_id in ['11']:
             return Framework11(framework_id=framework_id,
                                problem=problem,
                                algorithm=algorithm,
@@ -36,7 +36,7 @@ def get_framework(framework_id=None,
                                m5_fg_aggregate_func=m5_fg_aggregate_func,
                                m6_fg_aggregate_func=m6_fg_aggregate_func,
                                *args, **kwargs)
-        elif framework_id.lower() in ['12']:
+        elif framework_id in ['12']:
             return Framework12(framework_id=framework_id,
                                problem=problem,
                                algorithm=algorithm,
@@ -48,7 +48,7 @@ def get_framework(framework_id=None,
                                m5_fg_aggregate_func=m5_fg_aggregate_func,
                                m6_fg_aggregate_func=m6_fg_aggregate_func,
                                *args, **kwargs)
-        elif framework_id.lower() in ['21']:
+        elif framework_id in ['21']:
             return Framework21(framework_id=framework_id,
                                problem=problem,
                                algorithm=algorithm,
@@ -60,7 +60,7 @@ def get_framework(framework_id=None,
                                m5_fg_aggregate_func=m5_fg_aggregate_func,
                                m6_fg_aggregate_func=m6_fg_aggregate_func,
                                *args, **kwargs)
-        elif framework_id.lower() in ['22']:
+        elif framework_id in ['22']:
             return Framework22(framework_id=framework_id,
                                problem=problem,
                                algorithm=algorithm,
@@ -72,7 +72,7 @@ def get_framework(framework_id=None,
                                m5_fg_aggregate_func=m5_fg_aggregate_func,
                                m6_fg_aggregate_func=m6_fg_aggregate_func,
                                *args, **kwargs)
-        elif framework_id.lower() in ['31']:
+        elif framework_id in ['31']:
             return Framework31(framework_id=framework_id,
                                problem=problem,
                                algorithm=algorithm,
@@ -84,7 +84,7 @@ def get_framework(framework_id=None,
                                m5_fg_aggregate_func=m5_fg_aggregate_func,
                                m6_fg_aggregate_func=m6_fg_aggregate_func,
                                *args, **kwargs)
-        elif framework_id.lower() in ['32']:
+        elif framework_id in ['32']:
             return Framework32(framework_id=framework_id,
                                problem=problem,
                                algorithm=algorithm,
@@ -96,7 +96,7 @@ def get_framework(framework_id=None,
                                m5_fg_aggregate_func=m5_fg_aggregate_func,
                                m6_fg_aggregate_func=m6_fg_aggregate_func,
                                *args, **kwargs)
-        elif framework_id.lower() in ['41']:
+        elif framework_id in ['41']:
             return Framework41(framework_id=framework_id,
                                problem=problem,
                                algorithm=algorithm,
@@ -108,7 +108,7 @@ def get_framework(framework_id=None,
                                m5_fg_aggregate_func=m5_fg_aggregate_func,
                                m6_fg_aggregate_func=m6_fg_aggregate_func,
                                *args, **kwargs)
-        elif framework_id.lower() in ['42']:
+        elif framework_id in ['42']:
             return Framework42(framework_id=framework_id,
                                problem=problem,
                                algorithm=algorithm,
@@ -120,7 +120,7 @@ def get_framework(framework_id=None,
                                m5_fg_aggregate_func=m5_fg_aggregate_func,
                                m6_fg_aggregate_func=m6_fg_aggregate_func,
                                *args, **kwargs)
-        elif framework_id.lower() in ['5']:
+        elif framework_id in ['5']:
             return Framework5(framework_id=framework_id,
                               problem=problem,
                               algorithm=algorithm,
@@ -132,7 +132,7 @@ def get_framework(framework_id=None,
                               m5_fg_aggregate_func=m5_fg_aggregate_func,
                               m6_fg_aggregate_func=m6_fg_aggregate_func,
                               *args, **kwargs)
-        elif framework_id.lower() in ['6']:
+        elif framework_id in ['6A', '6B']:
             return Framework6(framework_id=framework_id,
                               problem=problem,
                               algorithm=algorithm,

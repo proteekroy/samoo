@@ -89,8 +89,8 @@ class Framework32(Framework):
             count = 0
             for j in range(self.ref_dirs.shape[0]):
 
-                f = actual_data["l" + str(j + 1) + "_" + str(self.f_aggregate_func)]
-                f_pred = prediction_data["l" + str(j + 1) + "_" + str(self.f_aggregate_func)]
+                f = actual_data["l" + str(j + 1) + "_" + str(self.f_aggregate_func)][partition]
+                f_pred = prediction_data["l" + str(j + 1) + "_" + str(self.f_aggregate_func)][partition]
 
                 for i in range(I.shape[0]):
                     count = count + 1

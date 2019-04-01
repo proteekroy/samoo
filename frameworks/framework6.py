@@ -29,23 +29,12 @@ class Framework6(Framework):
 
     def train(self, x, f, g, *args, **kwargs):
 
-        out = dict()
-
         for i in range(len(self.ref_dirs)):
-            self.prepare_aggregate_data(x=x,
-                                        f=f,
-                                        g=g,
-                                        out=out,
-                                        ref_dirs=self.ref_dirs,
-                                        curr_ref_id=i,
-                                        m6_fg_aggregate=self.m6_fg_aggregate_func)
-
-            d = prepare_data(f=f, g=g, acq_func=[self.m6_fg_aggregate_func], ref_dirs=self.ref_dirs,
+            string = "fg_M6_" + str(i + 1) + "_" + str(self.m6_fg_aggregate_func)
+            d = prepare_data(f=f, g=g, acq_func=[string], ref_dirs=self.ref_dirs,
                              curr_ref_id=i)
 
-            print(np.sum(d[self.m6_fg_aggregate_func] == out["S6"]))
-
-            self.model_list["fg_M6_" + str(i + 1) + "_" + str(self.m6_fg_aggregate_func)].train(x, d[self.m6_fg_aggregate_func])
+            self.model_list[string].train(x, d[string])
 
     def predict(self, x, out, *args, **kwargs):
         f = []
@@ -54,7 +43,7 @@ class Framework6(Framework):
             _f = self.model_list["fg_M6_" + str(i + 1) + "_" + str(self.m6_fg_aggregate_func)].predict(x)
             f.append(_f)
 
-        _g = np.zeros(x.shape[0])
+        _g = np.zeros([x.shape[0], self.problem.n_constr])
         g.append(_g)
 
         out["F"] = np.column_stack(f)
@@ -64,17 +53,19 @@ class Framework6(Framework):
 
         err = []
         for partition in range(n_split):
-            I_temp = np.arange(0, actual_data["fg_M6_1_" + str(self.m6_fg_aggregate_func)][0].shape[0])
-            I = np.asarray(list(product(I_temp, I_temp)))
-            cv = np.zeros([I_temp.shape[0], 1])
-            cv_pred = np.zeros([I_temp.shape[0], 1])
+
             # compute average error over all reference directions
             temp_err = 0
             count = 0
-            for j in range(self.ref_dirs.shape[0]):
+            for j in range(len(self.ref_dirs)):
+                string = "fg_M6_"+str(j + 1) + "_" + str(self.m6_fg_aggregate_func)
+                I_temp = np.arange(0, actual_data[string][partition].shape[0])
+                I = np.asarray(list(product(I_temp, I_temp)))
+                cv = np.zeros([I_temp.shape[0], 1])
+                cv_pred = np.zeros([I_temp.shape[0], 1])
 
-                f = actual_data["fg_M6_" + str(j + 1) + "_" + str(self.m6_fg_aggregate_func)]
-                f_pred = prediction_data["fg_M6_" + str(j + 1) + "_" + str(self.m6_fg_aggregate_func)]
+                f = actual_data[string][partition]
+                f_pred = prediction_data[string][partition]
 
                 for i in range(I.shape[0]):
                     count = count + 1

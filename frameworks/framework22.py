@@ -52,9 +52,11 @@ class Framework22(Framework):
             _g = np.zeros(x.shape[0])
 
         g.append(_g)
+        g = np.column_stack(g)
+        g = np.tile(g, [1, self.problem.n_constr])
 
         out["F"] = np.column_stack(f)
-        out["G"] = np.column_stack(g)
+        out["G"] = g
 
     def calculate_sep(self, problem, actual_data, prediction_data, n_split):
 

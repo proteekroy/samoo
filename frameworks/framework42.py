@@ -55,9 +55,11 @@ class Framework42(Framework):
             _g = np.zeros(x.shape[0])
 
         g.append(_g)
+        g = np.column_stack(g)
+        g = np.tile(g, [1, self.problem.n_constr])
 
         out["F"] = np.column_stack(f)
-        out["G"] = np.column_stack(g)
+        out["G"] = g
 
     def calculate_sep(self, problem, actual_data, prediction_data, n_split):
 
@@ -92,8 +94,8 @@ class Framework42(Framework):
             count = 0
             for j in range(self.ref_dirs.shape[0]):
 
-                f = actual_data["l" + str(j + 1) + "_" + str(self.f_aggregate_func)]
-                f_pred = prediction_data["l" + str(j + 1) + "_" + str(self.f_aggregate_func)]
+                f = actual_data["l" + str(j + 1) + "_" + str(self.f_aggregate_func)][partition]
+                f_pred = prediction_data["l" + str(j + 1) + "_" + str(self.f_aggregate_func)][partition]
 
                 for i in range(I.shape[0]):
                     count = count + 1

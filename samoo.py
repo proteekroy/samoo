@@ -17,6 +17,7 @@ import numpy as np
 from pymoo.model.termination import Termination, get_termination
 from pymoo.rand import random
 from frameworks.framework_switching import FrameworkSwitching
+from ensemble.candidate_select import framework_candidate_select
 
 if not sys.warnoptions:
     import warnings
@@ -35,6 +36,7 @@ class Samoo(GeneticAlgorithm):
                  lf_algorithm_list=None,
                  init_pop_size=None,
                  pop_size_per_epoch=None,
+                 pop_size_per_algorithm=None,
                  pop_size_lf=None,
                  n_split=10,
                  n_gen_lf=100,
@@ -54,6 +56,7 @@ class Samoo(GeneticAlgorithm):
         self.init_pop_size = init_pop_size
         self.pop_size_lf = pop_size_lf
         self.pop_size_per_epoch = pop_size_per_epoch
+        self.pop_size_per_algorithm = pop_size_per_algorithm
         self.framework_crossval = 10
         self.n_gen_lf = n_gen_lf
         self.ref_dirs = ref_dirs
@@ -108,13 +111,7 @@ class Samoo(GeneticAlgorithm):
         self.archive['x'] = np.empty([0, problem.n_var])
         self.archive['f'] = np.empty([0, problem.n_obj])
         self.archive['g'] = np.empty([0, np.max([problem.n_constr, 1])])
-        # self.framework = get_framework(framework_id=self.framework_id,
-        #                                framework_crossval=self.framework_crossval,
-        #                                problem=problem,
-        #                                algorithm=self,
-        #                                ref_dirs=self.ref_dirs,
-        #                                curr_ref_id=self.cur_ref_no,
-        #                                model_list=self.model_list)  # create frameworks
+
         self.framework = FrameworkSwitching(framework_id=self.framework_id,
                                             metamodel_list=self.metamodel_list,
                                             acq_list=self.acq_list,
@@ -157,7 +154,12 @@ class Samoo(GeneticAlgorithm):
                                           pf=self.pf,
                                           save_history=False,
                                           disp=False)
-                        # out_pop.append(res.pop)
+
+                        if self.pop_size_per_algorithm < len(res.pop):
+                            res.pop = framework_candidate_select(fr.framework_id,
+                                                                 ref_dirs=self.ref_dirs,
+                                                                 pop=res.pop,
+                                                                 n_select=self.pop_size_per_algorithm)
                         out_pop = out_pop.merge(res.pop)
 
                 elif fr.type == 1:
@@ -186,13 +188,14 @@ class Samoo(GeneticAlgorithm):
                             else:
                                 ind = res.pop[np.argmin(res.pop.get("CV"))]
 
-                            # out_pop.append(ind)
-                            out_pop = out_pop.merge(ind)
+                            # # out_pop.append(ind)
+                            # if len(out_pop) == 0:
+                            #     out_pop = Population(1, individual=ind)
+                            # else:
+                            out_pop = out_pop.merge(Population(1, individual=ind))
 
-        # out_pop = np.row_stack(out_pop).view(Population).flatten()
-
-        if self.pop_size_per_epoch < len(out_pop):
-            out_pop = self.candidate_select(ref_dirs=self.ref_dirs, pop=out_pop)
+        # if self.pop_size_per_epoch < len(out_pop):
+        #     out_pop = self.candidate_select(ref_dirs=self.ref_dirs, pop=out_pop)
 
         return out_pop.get("X")
 
@@ -251,61 +254,6 @@ class Samoo(GeneticAlgorithm):
 
         return out_pop_X
 
-    def candidate_select(self, ref_dirs=None, pop=None):
-
-        if self.pop_size_per_epoch == 1:
-            F = pop.get("F")
-            if F.shape[1] > 1:  # if it is multi-objective, pick the middle one
-                ref = (1/F.shape[1])*np.ones(F.shape[1])
-                _F = np.sum(ref*F, 1)
-                pop = pop[np.argmin(_F)]
-            else:  # single-objective
-                if np.any(pop.get("CV") <= 0):
-                    pop = pop[np.argmin(pop.get("F"))]
-                else:
-                    pop = pop[np.argmin(pop.get("CV"))]
-            return pop
-
-        out_pop = []
-
-        if self.framework_id in ['32', '42']:
-
-            f = pop.get("F")
-            cv = pop.get("CV")
-            feasible_index = (cv <= 0).flatten()  # find feasible index
-            infeasible_index = (cv > 0).flatten()
-            size = np.sum(infeasible_index)
-            if size > 1:
-                worst_of_all_ref_dir = np.max(f[feasible_index])
-                val_infeasible_sol = cv[infeasible_index] + worst_of_all_ref_dir
-                f[infeasible_index, :] = np.tile(val_infeasible_sol, (1, f.shape[1]))
-
-            for i in range(len(ref_dirs)):
-                index = np.argsort(f[:, i])
-                j = 0
-                while index[j] in out_pop:
-                    j += 1
-                out_pop.append(index[j])
-
-        else:
-
-            a_out = dict()
-            for i in range(len(ref_dirs)):
-
-                Framework.prepare_aggregate_data(f=pop.get("F"),
-                                                 g=pop.get("G"),
-                                                 out=a_out,
-                                                 m5_fg_aggregate='asfcv',
-                                                 ref_dirs=ref_dirs,
-                                                 curr_ref_id=i)
-                index = np.argsort(a_out['S5'])
-                j = 0
-                while index[j] in out_pop:
-                    j += 1
-                out_pop.append(index[j])
-
-        return pop[out_pop]
-
 
 # wrapper for pymop problem which is used by metamodel based optimization
 class SamooProblem(Problem):
@@ -355,7 +303,6 @@ class SamooEvaluator(Evaluator):
             g = g[I]
 
         problem._evaluate_high_fidelity(x=x, f=f, g=g)
-
         archive['x'] = np.concatenate((x, archive['x']), axis=0)
         archive['f'] = np.concatenate((f, archive['f']), axis=0)
         archive['g'] = np.concatenate((g, archive['g']), axis=0)

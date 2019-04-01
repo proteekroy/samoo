@@ -29,43 +29,37 @@ class Framework5(Framework):
 
     def train(self, x, f, g, *args, **kwargs):
 
-        out = dict()
-        self.prepare_aggregate_data(x=x, f=f, g=g, out=out, ref_dirs=self.ref_dirs,
-                                    m5_fg_aggregate=self.m5_fg_aggregate_func, curr_ref_id=self.curr_ref_id)
-
-        d = prepare_data(f=f, g=g, acq_func=[self.m5_fg_aggregate_func], ref_dirs=self.ref_dirs,
+        string = 'fg_M5_'+str(self.curr_ref_id + 1)+'_'+self.m5_fg_aggregate_func
+        d = prepare_data(f=f, g=g, acq_func=[string], ref_dirs=self.ref_dirs,
                          curr_ref_id=self.curr_ref_id)
 
-        print(np.sum(d[self.m5_fg_aggregate_func]==out["S5"]))
-
-        self.model_list["fg_M5_" + str(self.curr_ref_id + 1)+"_"+str(self.m5_fg_aggregate_func)].train(x, d[self.m5_fg_aggregate_func])
+        self.model_list[string].train(x, d[string])
 
     def predict(self, x, out, *args, **kwargs):
-        f = []
         g = []
         _f = self.model_list["fg_M5_" + str(self.curr_ref_id + 1)+"_"+str(self.m5_fg_aggregate_func)].predict(x)
-        f.append(_f)
         _g = np.zeros(x.shape[0])
         g.append(_g)
 
-        out["F"] = np.column_stack(f)
+        out["F"] = _f
         out["G"] = np.column_stack(g)
 
     def calculate_sep(self, problem, actual_data, prediction_data, n_split):
 
         err = []
         for partition in range(n_split):
-            I_temp = np.arange(0, actual_data["fg_M5_1_" + str(self.m5_fg_aggregate_func)][0].shape[0])
-            I = np.asarray(list(product(I_temp, I_temp)))
-            cv = np.zeros([I_temp.shape[0], 1])
-            cv_pred = np.zeros([I_temp.shape[0], 1])
             # compute average error over all reference directions
             temp_err = 0
             count = 0
             for j in range(self.ref_dirs.shape[0]):
 
-                f = actual_data["fg_M5_" + str(j + 1) + "_" + str(self.m5_fg_aggregate_func)]
-                f_pred = prediction_data["fg_M5_" + str(j + 1) + "_" + str(self.m5_fg_aggregate_func)]
+                I_temp = np.arange(0, actual_data["fg_M5_"+ str(j + 1)+"_" + str(self.m5_fg_aggregate_func)][partition].shape[0])
+                I = np.asarray(list(product(I_temp, I_temp)))
+                cv = np.zeros([I_temp.shape[0], 1])
+                cv_pred = np.zeros([I_temp.shape[0], 1])
+
+                f = actual_data["fg_M5_" + str(j + 1) + "_" + str(self.m5_fg_aggregate_func)][partition]
+                f_pred = prediction_data["fg_M5_" + str(j + 1) + "_" + str(self.m5_fg_aggregate_func)][partition]
 
                 for i in range(I.shape[0]):
                     count = count + 1

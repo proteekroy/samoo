@@ -28,17 +28,11 @@ class Framework31(Framework):
         self.type = 1
 
     def train(self, x, f, g, *args, **kwargs):
-        out = dict()
-        self.prepare_aggregate_data(x=x, f=f, g=g,
-                                    ref_dirs=self.ref_dirs,
-                                    curr_ref_id=self.curr_ref_id,
-                                    f_aggregate=self.f_aggregate_func, out=out)
         d = prepare_data(f=f, g=g, acq_func=['l_'+self.f_aggregate_func], ref_dirs=self.ref_dirs,
                          curr_ref_id=self.curr_ref_id)
 
         self.model_list["l" + str(self.curr_ref_id + 1) + "_" + str(self.f_aggregate_func)].train(x, d[self.f_aggregate_func])
 
-        print(np.sum(out["F"] == d[self.f_aggregate_func]))
         if self.problem.n_constr > 0:
                 for i in range(0, self.problem.n_constr):
                     self.model_list["g" + str(i + 1)].train(x, g[:, i])
@@ -93,8 +87,8 @@ class Framework31(Framework):
             count = 0
             for j in range(self.ref_dirs.shape[0]):
 
-                f = actual_data["l" + str(j + 1) + "_" + str(self.f_aggregate_func)]
-                f_pred = prediction_data["l" + str(j + 1) + "_" + str(self.f_aggregate_func)]
+                f = actual_data["l" + str(j + 1) + "_" + str(self.f_aggregate_func)][partition]
+                f_pred = prediction_data["l" + str(j + 1) + "_" + str(self.f_aggregate_func)][partition]
 
                 for i in range(I.shape[0]):
                     count = count + 1

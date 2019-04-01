@@ -1,5 +1,6 @@
 from collections import defaultdict
 
+
 # find all possible acquisition functions that is needed to run the frameworks
 def get_acq_function(framework_id=None,
                      aggregation=None,
@@ -44,18 +45,23 @@ def get_acq_function(framework_id=None,
                 framework_acq_dict['41'].append(string)
                 framework_acq_dict['42'].append(string)
 
-    if len(list(set(['5', '6A']).intersection(framework_id))) > 0:
+    if len(list(set(['5']).intersection(framework_id))) > 0:
         for i in range(n_dir):
             for j in aggregation['fg_M5']:
                 string = "fg_M5_" + str(i + 1) + '_'+str(j)
                 acq_list.append(string)
                 framework_acq_dict['5'].append(string)
-                framework_acq_dict['6A'].append(string)
 
-    if len(list(set(['6B']).intersection(framework_id))) > 0:
+    if len(list(set(['6B', '6A']).intersection(framework_id))) > 0:
         for j in aggregation['fg_M6']:
-            string = "fg_M6_"+str(j)
-            acq_list.append(string)
-            framework_acq_dict['6B'].append(string)
+            if j not in ['asfcv']:
+                string = "fg_M6_0_"+str(j)
+                acq_list.append(string)
+                framework_acq_dict['6B'].append(string)
+            else:
+                for i in range(n_dir):
+                    string = "fg_M6_" + str(i + 1) + '_' + str(j)
+                    acq_list.append(string)
+                    framework_acq_dict['6A'].append(string)
 
     return acq_list, framework_acq_dict

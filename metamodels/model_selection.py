@@ -40,14 +40,16 @@ def prepare_data(x=None,
             cv = np.sum(cv, axis=1)
 
             if aggregation_function == 'cv':
-                d[acq] = np.vstack(np.asarray(cv).flatten())
+                cv = np.vstack(np.asarray(cv).flatten())
+                d[acq] = cv
             elif aggregation_function == 'acv':
                 acv = np.sum(g, axis=1)
                 acv[index] = np.copy(cv[index])
-                d[acq] = np.vstack(np.asarray(acv).flatten())
+                acv = np.vstack(np.asarray(acv).flatten())
+                d[acq] = np.tanh(acv)
             else:
                 raise Exception('Aggregation function for constraints not defined!')
-            d[acq] = np.expand_dims(d[acq], axis=1)
+
         elif 'l' in acq:
             f_normalized = (f - np.min(f, axis=0)) / (np.max(f, axis=0) - np.min(f, axis=0))
             aggregation_function = acq.split('_')[1]
@@ -61,6 +63,8 @@ def prepare_data(x=None,
 
         elif 'fg_M5' in acq:
             aggregation_function = acq.split('_')[3]
+            if curr_ref_id == -1:
+                curr_ref_id = int(acq.split('_')[2]) - 1
             if aggregation_function == 'asfcv':
                 cv = np.copy(g)
                 cv[g <= 0] = 0
@@ -76,22 +80,35 @@ def prepare_data(x=None,
                 raise Exception('M5 Aggregation of objectives and constraints not defined!')
             d[acq] = np.expand_dims(d[acq], axis=1)
         elif 'fg_M6' in acq:
-            aggregation_function = acq.split('_')[2]
+            aggregation_function = acq.split('_')[3]
+            if curr_ref_id == -1:
+                curr_ref_id = int(acq.split('_')[2]) - 1
             if aggregation_function == 'asfcv':
-                t = []
+                # t = []
+                # cv = np.copy(g)
+                # cv[g <= 0] = 0
+                # cv = np.sum(cv, axis=1)
+                # index = cv > 0
+                # for curr_ref_id in range(0, ref_dirs.shape[0]):
+                #     f_normalized = (f - np.min(f, axis=0)) / (np.max(f, axis=0) - np.min(f, axis=0))
+                #     f_temp = np.max(f_normalized - ref_dirs[curr_ref_id], axis=1)
+                #     f_max = np.max(f_temp)
+                #     if len(index) > 0:
+                #         f_temp[index] = f_max + cv[index]
+                #     t.append(f_temp)
+                #
+                # d[acq] = np.column_stack(t)
                 cv = np.copy(g)
                 cv[g <= 0] = 0
                 cv = np.sum(cv, axis=1)
                 index = cv > 0
-                for curr_ref_id in range(0, ref_dirs.shape[0]):
-                    f_normalized = (f - np.min(f, axis=0)) / (np.max(f, axis=0) - np.min(f, axis=0))
-                    f_temp = np.max(f_normalized - ref_dirs[curr_ref_id], axis=1)
-                    f_max = np.max(f_temp)
-                    if len(index) > 0:
-                        f_temp[index] = f_max + cv[index]
-                    t.append(f_temp)
-
-                d[acq] = np.column_stack(t)
+                f_normalized = (f - np.min(f, axis=0)) / (np.max(f, axis=0) - np.min(f, axis=0))
+                f_temp = np.max(f_normalized - ref_dirs[curr_ref_id], axis=1)
+                f_max = np.max(f_temp)
+                if len(index) > 0:
+                    f_temp[index] = f_max + cv[index]
+                d[acq] = f_temp
+                d[acq] = np.expand_dims(d[acq], axis=1)
             elif aggregation_function == 'asf_regular_cv':
                 t = []
                 cv = np.copy(g)
@@ -183,6 +200,7 @@ def select_best_metamodel(x=None,
 
     return model, error_data, actual_data, prediction_data
 
+
 def calculate_sep_metamodel(mm, x, f):
 
     I = np.arange(0, x.shape[0])
@@ -196,6 +214,7 @@ def calculate_sep_metamodel(mm, x, f):
     err = np.sum(actual_relation != pred_relation) / I.shape[0]
 
     return err, f_pred
+
 
 def return_metamodel_object(metamodel_name, problem):
 
