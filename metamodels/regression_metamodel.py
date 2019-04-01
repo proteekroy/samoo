@@ -15,7 +15,7 @@ class DacefitGP(MetaModel):
         super().__init__()
 
     def train(self, input, target, *args, **kwargs):
-        self.model = DACE(regr=regr_quadratic, corr=corr_gauss, theta=1.0, tl=0.00001, tu=100)
+        self.model = DACE(regr=regr_quadratic, corr=corr_gauss, theta=1.0, thetaL=0.00001, thetaU=100)
         self.model.fit(input, target)
 
     def predict(self, x, *args, **kwargs):
@@ -57,8 +57,8 @@ class GPRmodel(MetaModel):
         self.model.fit(input, target)
 
     def predict(self, x, *args, **kwargs):
-        mean = self.model.predict(x)
-        return mean
+        out = self.model.predict(x)
+        return out
 
 
 class SVRmodel(MetaModel):

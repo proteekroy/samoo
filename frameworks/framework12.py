@@ -1,7 +1,6 @@
 from frameworks.factory import Framework
-import copy
-from metamodels.regression_metamodel import GPRmodel, SVRmodel, KRRmodel
 import numpy as np
+from itertools import product
 
 
 class Framework12(Framework):
@@ -23,6 +22,7 @@ class Framework12(Framework):
                          curr_ref_id=curr_ref_id,
                          *args,
                          **kwargs)
+        self.type = 2
 
     def train(self, x, f, g, *args, **kwargs):
         for i in range(0, self.problem.n_obj):
@@ -49,99 +49,46 @@ class Framework12(Framework):
         out["F"] = np.column_stack(f)
         out["G"] = np.column_stack(g)
 
+    def calculate_sep(self, problem, actual_data, prediction_data, n_split):
 
-# class Framework12B(Framework):
-#     def __init__(self,
-#                  framework_id=None,
-#                  framework_crossval=None,
-#                  problem=None,
-#                  algorithm=None,
-#                  curr_ref=None,
-#                  model_list=None,
-#                  *args,
-#                  **kwargs
-#                  ):
-#         super().__init__(framework_id, framework_crossval, problem, algorithm, curr_ref, model_list, *args, **kwargs)
-#
-#     def train(self, x, f, g, *args, **kwargs):
-#
-#         self.model_list["f"].train(x, f, cross_val=False, *args, **kwargs)
-#
-#         if self.problem.n_constr > 0:
-#             self.model_list["g"].train(x, g, cross_val=False, *args, **kwargs)
-#
-#     def predict(self, x, f, g, *args, **kwargs):
-#
-#         f[:, :] = self.model_list["f"].predict(x)
-#
-#         if self.problem.n_constr > 0:
-#             g[:, :] = self.model_list["g"].predict(x)
-#
-#
-# class Framework12C(Framework):
-#     def __init__(self,
-#                  framework_id=None,
-#                  framework_crossval=None,
-#                  problem=None,
-#                  algorithm=None,
-#                  curr_ref=None,
-#                  model_list=None,
-#                  *args,
-#                  **kwargs
-#                  ):
-#         super().__init__(framework_id, framework_crossval, problem, algorithm, curr_ref, model_list, *args, **kwargs)
-#
-#         if self.problem.n_constr > 0:
-#             for i in range(0, self.problem.n_constr):
-#                 self.model_list["g" + str(i + 1)] = GPRmodel()
-#
-#     def train(self, x, f, g, *args, **kwargs):
-#
-#         self.model_list["f"].train(x, f, cross_val=False, *args, **kwargs)
-#
-#         if self.problem.n_constr > 0:
-#             for i in range(0, self.problem.n_constr):
-#                 self.model_list["g"+str(i+1)].train(x, g[:, i])
-#
-#     def predict(self, x, f, g, *args, **kwargs):
-#
-#         f[:, :] = self.model_list["f"].predict(x)
-#
-#         if self.problem.n_constr > 0:
-#             for i in range(0, self.problem.n_constr):
-#                 g[:, i] = self.model_list["g" + str(i + 1)].predict(x)
-#
-#
-# class Framework12D(Framework):
-#     def __init__(self,
-#                  framework_id=None,
-#                  framework_crossval=None,
-#                  problem=None,
-#                  algorithm=None,
-#                  curr_ref=None,
-#                  model_list=None,
-#                  *args,
-#                  **kwargs
-#                  ):
-#         super().__init__(framework_id, framework_crossval, problem, algorithm, curr_ref, model_list, *args, **kwargs)
-#
-#         self.model_list["f1"] = GPRmodel()
-#
-#         for i in range(1, self.problem.n_obj):
-#             self.model_list["f" + str(i + 1)] = GPRmodel()
-#
-#     def train(self, x, f, g, *args, **kwargs):
-#
-#         for i in range(0, self.problem.n_obj):
-#             self.model_list["f"+str(i+1)].train(x, f[:, i])
-#
-#         if self.problem.n_constr > 0:
-#             self.model_list["g"].train(x, g, cross_val=False, *args, **kwargs)
-#
-#     def predict(self, x, f, g, *args, **kwargs):
-#
-#         for i in range(0, self.problem.n_obj):
-#             f[:, i] = self.model_list["f"+str(i+1)].predict(x)
-#
-#         if self.problem.n_constr > 0:
-#             g[:, :] = self.model_list["g"].predict(x)
+        err = []
+        for partition in range(n_split):
+            f = []
+            f_pred = []
+            for i in range(problem.n_obj):
+                f.append(actual_data['f'+str(i+1)][partition])
+                f_pred.append(prediction_data['f' + str(i + 1)][partition])
+
+            f = np.column_stack(f)
+            f_pred = np.column_stack(f_pred)
+            if problem.n_constr > 0:
+                g = []
+                g_pred = []
+                for j in range(problem.n_constr):
+                    g.append(actual_data['g' + str(j + 1)][partition])
+                    g_pred.append(prediction_data['g' + str(j + 1)][partition])
+
+                g = np.column_stack(g)
+                g_pred = np.column_stack(g_pred)
+
+                cv = np.copy(g)
+                cv[g <= 0] = 0
+                cv = np.sum(cv, axis=1)
+
+                cv_pred = np.copy(g_pred)
+                cv_pred[g_pred <= 0] = 0
+                cv_pred = np.sum(cv_pred, axis=1)
+            else:
+                cv = np.zeros([f.shape[0], 1])
+                cv_pred = np.zeros([f.shape[0], 1])
+
+            I = np.arange(0, f.shape[0])
+            I = np.asarray(list(product(I, I)))
+            temp_err = 0
+            for i in range(I.shape[0]):
+                d1 = self.constrained_domination(f[I[i, 0]], f[I[i, 1]], cv[I[i, 0]], cv[I[i, 1]])
+                d2 = self.constrained_domination(f_pred[I[i, 0]], f_pred[I[i, 1]], cv_pred[I[i, 0]], cv_pred[I[i, 1]])
+                if d1 != d2:
+                    temp_err = temp_err + 1
+            err.append(temp_err)
+        return np.asarray(err)

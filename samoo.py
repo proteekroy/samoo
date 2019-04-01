@@ -10,17 +10,13 @@ from pymoo.util.display import disp_multi_objective
 from pymoo.util.non_dominated_sorting import NonDominatedSorting
 from pymoo.algorithms.nsga3 import ReferenceDirectionSurvival, comp_by_cv_then_random
 from pymop.problems import *
-# from pymoo.optimize import minimize
 from pymoo.model.evaluator import Evaluator
-from frameworks.get_framework import get_framework
 from frameworks.factory import Framework
 import sys
 import numpy as np
-from pymoo.model.termination import MaximumFunctionCallTermination, MaximumGenerationTermination, IGDTermination, \
-        Termination, get_termination
+from pymoo.model.termination import Termination, get_termination
 from pymoo.rand import random
-from abc import abstractmethod
-
+from frameworks.framework_switching import FrameworkSwitching
 
 if not sys.warnoptions:
     import warnings
@@ -30,13 +26,17 @@ if not sys.warnoptions:
 class Samoo(GeneticAlgorithm):
 
     def __init__(self, ref_dirs,
-                 framework_id=12,
-                 model_list=None,
+                 framework_id=None,
+                 metamodel_list=None,
+                 acq_list=None,
+                 framework_acq_dict=None,
+                 aggregation=None,
                  disp=False,
-                 lf_algorithm='nsga3',
+                 lf_algorithm_list=None,
                  init_pop_size=None,
                  pop_size_per_epoch=None,
                  pop_size_lf=None,
+                 n_split=10,
                  n_gen_lf=100,
                  **kwargs):
         kwargs['individual'] = Individual(rank=np.inf, niche=-1, dist_to_niche=np.inf)
@@ -56,16 +56,23 @@ class Samoo(GeneticAlgorithm):
         self.pop_size_per_epoch = pop_size_per_epoch
         self.framework_crossval = 10
         self.n_gen_lf = n_gen_lf
-        self.framework_id = framework_id
-        self.model_list = model_list
         self.ref_dirs = ref_dirs
         self.cur_ref_no = 0
-        self.lf_algorithm = lf_algorithm
+        self.framework_id = framework_id
+        self.metamodel_list = metamodel_list
+        self.metamodel_list = self.metamodel_list
+        self.acq_list = acq_list
+        self.framework_acq_dict = framework_acq_dict
+        self.aggregation = aggregation
+        self.lf_algorithm_list = lf_algorithm_list
+        self.n_split = n_split
         self.problem = None
         self.archive = None
         self.metamodel = None
         self.pop = None
         self.samoo_evaluator = SamooEvaluator()
+        self.generative_algorithm = ['rga', 'rga_x', 'de']
+        self.simultaneous_algorithm = ['mm_rga', 'nsga2', 'nsga3', 'moead']
 
     def _solve(self, problem, termination):
         if self.ref_dirs.shape[1] != problem.n_obj:
@@ -101,13 +108,23 @@ class Samoo(GeneticAlgorithm):
         self.archive['x'] = np.empty([0, problem.n_var])
         self.archive['f'] = np.empty([0, problem.n_obj])
         self.archive['g'] = np.empty([0, np.max([problem.n_constr, 1])])
-        self.framework = get_framework(framework_id=self.framework_id,
-                                       framework_crossval=self.framework_crossval,
-                                       problem=problem,
-                                       algorithm=self,
-                                       ref_dirs=self.ref_dirs,
-                                       curr_ref_id=self.cur_ref_no,
-                                       model_list=self.model_list)  # create frameworks
+        # self.framework = get_framework(framework_id=self.framework_id,
+        #                                framework_crossval=self.framework_crossval,
+        #                                problem=problem,
+        #                                algorithm=self,
+        #                                ref_dirs=self.ref_dirs,
+        #                                curr_ref_id=self.cur_ref_no,
+        #                                model_list=self.model_list)  # create frameworks
+        self.framework = FrameworkSwitching(framework_id=self.framework_id,
+                                            metamodel_list=self.metamodel_list,
+                                            acq_list=self.acq_list,
+                                            framework_acq_dict=self.framework_acq_dict,
+                                            aggregation=self.aggregation,
+                                            n_split=self.n_split,
+                                            problem=problem,
+                                            algorithm=self,
+                                            ref_dirs=self.ref_dirs)
+
         self.samoo_problem = SamooProblem(problem=self.problem, framework=self.framework)  # problem wrapper
         self.cur_ref_no = 0
         self.framework.set_current_reference(self.cur_ref_no)
@@ -125,121 +142,82 @@ class Samoo(GeneticAlgorithm):
     def _next(self):
 
         self.framework.train(x=self.archive["x"], f=self.archive["f"], g=self.archive["g"])
-        res = lf_minimize(problem=self.samoo_problem,
-                               method=self.lf_algorithm,
-                               method_args={'pop_size': self.pop_size_lf, 'ref_dirs': self.ref_dirs},
-                               termination=('n_gen', self.n_gen_lf),
-                               pf=self.pf,
-                               save_history=False,
-                               disp=False)
-        if self.pop_size_per_epoch < len(res.pop):
-            pop = self.candidate_select(ref_dirs=self.ref_dirs, pop=res.pop)
-            return pop.get("X")
-        else:
-            return res.pop.get("X")
+        out_pop = Population(0, individual=Individual())
+        for fr in self.framework.best_frameworks:
+            self.samoo_problem.framework = fr
+            for lf_algorithm in self.lf_algorithm_list:
 
-    def candidate_select(self, ref_dirs=None, pop=None):
+                if fr.type == 2:
+                    if lf_algorithm in self.simultaneous_algorithm:
 
-        if self.pop_size_per_epoch == 1:
-            F = pop.get("F")
-            if F.shape[1] > 1:  # if it is multi-objective, pick the middle one
-                ref = (1/F.shape[1])*np.ones(F.shape[1])
-                _F = np.sum(ref*F, 1)
-                pop = pop[np.argmin(_F)]
-            else:  # single-objective
-                if np.any(pop.get("CV") <= 0):
-                    pop = pop[np.argmin(pop.get("F"))]
-                else:
-                    pop = pop[np.argmin(pop.get("CV"))]
-            return pop
+                        res = lf_minimize(problem=self.samoo_problem,
+                                          method=lf_algorithm,
+                                          method_args={'pop_size': self.pop_size_lf, 'ref_dirs': self.ref_dirs},
+                                          termination=('n_gen', self.n_gen_lf),
+                                          pf=self.pf,
+                                          save_history=False,
+                                          disp=False)
+                        # out_pop.append(res.pop)
+                        out_pop = out_pop.merge(res.pop)
 
+                elif fr.type == 1:
+                    if lf_algorithm in self.generative_algorithm:
+                        # if fr.framework_id in ['11', '21']:
+                        #    fr.train(x=self.archive["x"], f=self.archive["f"], g=self.archive["g"])
+                        for i in range(len(self.ref_dirs)):
+                            self.cur_ref_no = i
+                            fr.set_current_reference(self.cur_ref_no)
+
+                            if fr.framework_id in ['31', '41', '5']:
+                                fr.train(x=self.archive["x"], f=self.archive["f"], g=self.archive["g"])
+
+                            res = lf_minimize(problem=self.samoo_problem,
+                                              method=lf_algorithm,
+                                              method_args={'pop_size': self.pop_size_lf, 'ref_dirs': self.ref_dirs},
+                                              termination=('n_gen', self.n_gen_lf),
+                                              pf=self.pf,
+                                              save_history=False,
+                                              disp=False)
+
+                            if np.any(res.pop.get("CV") <= 0):
+                                I = res.pop.get("CV") <= 0
+                                res.pop = res.pop[I.flatten()]
+                                ind = res.pop[np.argmin(res.pop.get("F"))]
+                            else:
+                                ind = res.pop[np.argmin(res.pop.get("CV"))]
+
+                            # out_pop.append(ind)
+                            out_pop = out_pop.merge(ind)
+
+        # out_pop = np.row_stack(out_pop).view(Population).flatten()
+
+        if self.pop_size_per_epoch < len(out_pop):
+            out_pop = self.candidate_select(ref_dirs=self.ref_dirs, pop=out_pop)
+
+        return out_pop.get("X")
+
+    def _next_simultaneous(self):
+
+        self.framework.train(x=self.archive["x"], f=self.archive["f"], g=self.archive["g"])
         out_pop = []
+        for lf_algorithm in self.lf_algorithm_list:
+            res = lf_minimize(problem=self.samoo_problem,
+                                   method=lf_algorithm,
+                                   method_args={'pop_size': self.pop_size_lf, 'ref_dirs': self.ref_dirs},
+                                   termination=('n_gen', self.n_gen_lf),
+                                   pf=self.pf,
+                                   save_history=False,
+                                   disp=False)
+            out_pop.append(res.pop)
 
-        if self.framework_id in ['32', '42']:
+        out_pop = np.row_stack(out_pop).view(Population)
 
-            f = pop.get("F")
-            cv = pop.get("CV")
-            feasible_index = (cv <= 0).flatten()  # find feasible index
-            infeasible_index = (cv > 0).flatten()
-            size = np.sum(infeasible_index)
-            if size > 1:
-                worst_of_all_ref_dir = np.max(f[feasible_index])
-                val_infeasible_sol = cv[infeasible_index] + worst_of_all_ref_dir
-                f[infeasible_index, :] = np.tile(val_infeasible_sol, (1, f.shape[1]))
+        if self.pop_size_per_epoch < len(out_pop):
+            out_pop = self.candidate_select(ref_dirs=self.ref_dirs, pop=out_pop)
 
+        return out_pop.get("X")
 
-            # g = pop.get("G")
-            # feasible_index = np.any(g <= 0, axis=1)  # find feasible index
-            # infeasible_index = np.any(g > 0, axis=1)
-            # # find worst of all reference dir among feasible solutions
-            # f = pop.get("F")
-            #
-            # if np.any(infeasible_index):
-            #     worst_of_all_ref_dir = np.max(f[feasible_index])
-            #     cv = np.copy(g)
-            #     cv[g <= 0] = 0
-            #     cv = np.sum(cv, axis=1)
-            #     val_infeasible_sol = cv[infeasible_index] + worst_of_all_ref_dir
-            #     f[infeasible_index, :] = np.tile(val_infeasible_sol, (f.shape[1], 1)).transpose()
-
-            for i in range(len(ref_dirs)):
-                index = np.argsort(f[:, i])
-                j = 0
-                while index[j] in out_pop:
-                    j += 1
-                out_pop.append(index[j])
-
-        else:
-
-            a_out = dict()
-            for i in range(len(ref_dirs)):
-
-                Framework.prepare_aggregate_data(f=pop.get("F"),
-                                                 g=pop.get("G"),
-                                                 out=a_out,
-                                                 m5_fg_aggregate='asfcv',
-                                                 ref_dirs=ref_dirs,
-                                                 curr_ref_id=i)
-                index = np.argsort(a_out['S5'])
-                j = 0
-                while index[j] in out_pop:
-                    j += 1
-                out_pop.append(index[j])
-
-        return pop[out_pop]  # np.row_stack(out_pop)
-
-
-class Simultaneous(Samoo):
-    def __init__(self, ref_dirs,
-                 framework_id=12,
-                 model_list=None,
-                 disp=False,
-                 lf_algorithm='nsga3',
-                 init_pop_size=100,
-                 pop_size_per_epoch=100,
-                 pop_size_lf=100,
-                 n_gen_lf=200,
-                 **kwargs):
-        super().__init__(ref_dirs, framework_id, model_list, disp, lf_algorithm, init_pop_size,
-                                         pop_size_per_epoch, pop_size_lf, n_gen_lf, **kwargs)
-
-
-class Generative(Samoo):
-
-    def __init__(self, ref_dirs,
-                 framework_id=12,
-                 model_list=None,
-                 disp=False,
-                 lf_algorithm='nsga3',
-                 init_pop_size=100,
-                 pop_size_per_epoch=100,
-                 pop_size_lf=100,
-                 n_gen_lf=100,
-                 **kwargs):
-        super().__init__(ref_dirs, framework_id, model_list, disp, lf_algorithm, init_pop_size,
-                                         pop_size_per_epoch, pop_size_lf, n_gen_lf, **kwargs)
-
-    def _next(self):
+    def _next_generative(self):
 
         if self.framework.framework_id in ['11', '21']:
             self.framework.train(x=self.archive["x"], f=self.archive["f"], g=self.archive["g"])
@@ -272,6 +250,61 @@ class Generative(Samoo):
         out_pop_X = np.row_stack(out_pop_X)
 
         return out_pop_X
+
+    def candidate_select(self, ref_dirs=None, pop=None):
+
+        if self.pop_size_per_epoch == 1:
+            F = pop.get("F")
+            if F.shape[1] > 1:  # if it is multi-objective, pick the middle one
+                ref = (1/F.shape[1])*np.ones(F.shape[1])
+                _F = np.sum(ref*F, 1)
+                pop = pop[np.argmin(_F)]
+            else:  # single-objective
+                if np.any(pop.get("CV") <= 0):
+                    pop = pop[np.argmin(pop.get("F"))]
+                else:
+                    pop = pop[np.argmin(pop.get("CV"))]
+            return pop
+
+        out_pop = []
+
+        if self.framework_id in ['32', '42']:
+
+            f = pop.get("F")
+            cv = pop.get("CV")
+            feasible_index = (cv <= 0).flatten()  # find feasible index
+            infeasible_index = (cv > 0).flatten()
+            size = np.sum(infeasible_index)
+            if size > 1:
+                worst_of_all_ref_dir = np.max(f[feasible_index])
+                val_infeasible_sol = cv[infeasible_index] + worst_of_all_ref_dir
+                f[infeasible_index, :] = np.tile(val_infeasible_sol, (1, f.shape[1]))
+
+            for i in range(len(ref_dirs)):
+                index = np.argsort(f[:, i])
+                j = 0
+                while index[j] in out_pop:
+                    j += 1
+                out_pop.append(index[j])
+
+        else:
+
+            a_out = dict()
+            for i in range(len(ref_dirs)):
+
+                Framework.prepare_aggregate_data(f=pop.get("F"),
+                                                 g=pop.get("G"),
+                                                 out=a_out,
+                                                 m5_fg_aggregate='asfcv',
+                                                 ref_dirs=ref_dirs,
+                                                 curr_ref_id=i)
+                index = np.argsort(a_out['S5'])
+                j = 0
+                while index[j] in out_pop:
+                    j += 1
+                out_pop.append(index[j])
+
+        return pop[out_pop]
 
 
 # wrapper for pymop problem which is used by metamodel based optimization

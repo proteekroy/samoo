@@ -1,58 +1,61 @@
-from metamodels.siamese_net import SiameseMetamodel
-from metamodels.nn_models import SiameseNet, ConstraintNet, ConstraintNet2
-from metamodels.constraint_net import ConstraintMetamodel
-from metamodels.regression_metamodel import GPRmodel, SVRmodel, KRRmodel, DacefitGP
+from collections import defaultdict
 
+# find all possible acquisition functions that is needed to run the frameworks
+def get_acq_function(framework_id=None,
+                     aggregation=None,
+                     problem=None,
+                     n_dir=-1):
+    acq_list = []
+    framework_acq_dict = defaultdict(list)
+    if len(list(set(['11', '12', '21', '22']).intersection(framework_id))) > 0:
+        for i in range(problem.n_obj):
+            string = "f" + str(i + 1)
+            acq_list.append(string)
+            framework_acq_dict['11'].append(string)
+            framework_acq_dict['12'].append(string)
+            framework_acq_dict['21'].append(string)
+            framework_acq_dict['22'].append(string)
 
-def get_model(framework_id=None, problem=None, metamodel_list=None, uniform=True, n_dir=-1):
+    if len(list(set(['11', '12', '31', '32']).intersection(framework_id))) > 0:
+        for j in range(problem.n_constr):
+            string = "g" + str(j + 1)
+            acq_list.append(string)
+            framework_acq_dict['11'].append(string)
+            framework_acq_dict['12'].append(string)
+            framework_acq_dict['31'].append(string)
+            framework_acq_dict['32'].append(string)
 
-    if len(metamodel_list) == 0:
-        raise Exception('Metamodel not provided.')
+    if len(list(set(['21', '22', '41', '42']).intersection(framework_id))) > 0:
+        for i in aggregation['G']:
+            string = "G_" + str(i)
+            acq_list.append(string)
+            framework_acq_dict['21'].append(string)
+            framework_acq_dict['22'].append(string)
+            framework_acq_dict['41'].append(string)
+            framework_acq_dict['42'].append(string)
 
-    model_list = dict()
-    if uniform:
-        metamodel_name = metamodel_list['f']
-        if framework_id.lower() in ['11', '12', '21', '22']:
-            for i in range(problem.n_obj):
-                model_list["f" + str(i + 1)] = return_metamodel_object(metamodel_name, problem)
+    if len(list(set(['31', '32', '41', '42']).intersection(framework_id))) > 0:
+        for i in range(n_dir):
+            for j in aggregation['l']:
+                string = "l" + str(i + 1) + '_'+str(j)
+                acq_list.append(string)
+                framework_acq_dict['31'].append(string)
+                framework_acq_dict['32'].append(string)
+                framework_acq_dict['41'].append(string)
+                framework_acq_dict['42'].append(string)
 
-        if framework_id.lower() in ['11', '12', '31', '32']:
-            for j in range(problem.n_constr):
-                model_list["g" + str(j + 1)] = return_metamodel_object(metamodel_name, problem)
+    if len(list(set(['5', '6A']).intersection(framework_id))) > 0:
+        for i in range(n_dir):
+            for j in aggregation['fg_M5']:
+                string = "fg_M5_" + str(i + 1) + '_'+str(j)
+                acq_list.append(string)
+                framework_acq_dict['5'].append(string)
+                framework_acq_dict['6A'].append(string)
 
-        if framework_id.lower() in ['21', '22', '41', '42']:
+    if len(list(set(['6B']).intersection(framework_id))) > 0:
+        for j in aggregation['fg_M6']:
+            string = "fg_M6_"+str(j)
+            acq_list.append(string)
+            framework_acq_dict['6B'].append(string)
 
-            model_list["G"] = return_metamodel_object(metamodel_name, problem)
-
-        if framework_id.lower() in ['31', '32', '41', '42', '5', '6']:
-
-            for i in range(n_dir):
-                model_list["f" + str(i + 1)] = return_metamodel_object(metamodel_name, problem)
-
-    else:
-        raise Exception('Different metamodels for different functions is not supported.')
-
-    return model_list
-
-
-def return_metamodel_object(metamodel_name, problem):
-
-    if metamodel_name == 'dacefit':
-        return DacefitGP()
-    elif metamodel_name == 'gpr':
-        return GPRmodel()
-    elif metamodel_name == 'krr':
-        return KRRmodel()
-    elif metamodel_name == 'svr':
-        return SVRmodel()
-    elif metamodel_name == 'siamese':
-        net = SiameseNet(n_var=problem.n_var, n_obj=problem.n_obj, hidden_layer_length=20, embed_length=10)
-        return SiameseMetamodel(problem.n_var, problem.n_obj, neuralnet=net,
-                               total_epoch=300, disp=False,
-                               best_accuracy_model=False,
-                               batch_size=10)
-    elif metamodel_name == 'constrnet':
-        net = ConstraintNet(n_var=problem.n_var, n_constr=problem.n_constr)
-        return ConstraintMetamodel(problem.n_var, problem.n_constr,
-                                   neuralnet=net, total_epoch=300,
-                                   disp=False, best_accuracy_model=False)
+    return acq_list, framework_acq_dict

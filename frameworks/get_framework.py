@@ -8,7 +8,6 @@ from frameworks.framework41 import Framework41
 from frameworks.framework42 import Framework42
 from frameworks.framework5 import Framework5
 from frameworks.framework6 import Framework6
-from frameworks.framework_hybrid import *
 
 
 def get_framework(framework_id=None,
@@ -17,81 +16,135 @@ def get_framework(framework_id=None,
                   model_list=None,
                   ref_dirs=None,
                   curr_ref_id=None,
+                  g_aggregate_func=None,
+                  f_aggregate_func=None,
+                  m5_fg_aggregate_func=None,
+                  m6_fg_aggregate_func=None,
                   *args,
                   **kwargs):
     frameworks = framework_id.split(',')
-    if len(frameworks)==1:
+    if len(frameworks) == 1:
         if framework_id.lower() in ['11']:
             return Framework11(framework_id=framework_id,
-                                problem=problem,
-                                algorithm=algorithm,
-                                model_list=model_list,
-                                ref_dirs=ref_dirs,
-                                curr_ref_id=curr_ref_id, *args, **kwargs)
+                               problem=problem,
+                               algorithm=algorithm,
+                               model_list=model_list,
+                               ref_dirs=ref_dirs,
+                               curr_ref_id=curr_ref_id,
+                               g_aggregate_func=g_aggregate_func,
+                               f_aggregate_func=f_aggregate_func,
+                               m5_fg_aggregate_func=m5_fg_aggregate_func,
+                               m6_fg_aggregate_func=m6_fg_aggregate_func,
+                               *args, **kwargs)
         elif framework_id.lower() in ['12']:
             return Framework12(framework_id=framework_id,
                                problem=problem,
                                algorithm=algorithm,
                                model_list=model_list,
                                ref_dirs=ref_dirs,
-                               curr_ref_id=curr_ref_id, *args, **kwargs)
+                               curr_ref_id=curr_ref_id,
+                               g_aggregate_func=g_aggregate_func,
+                               f_aggregate_func=f_aggregate_func,
+                               m5_fg_aggregate_func=m5_fg_aggregate_func,
+                               m6_fg_aggregate_func=m6_fg_aggregate_func,
+                               *args, **kwargs)
         elif framework_id.lower() in ['21']:
             return Framework21(framework_id=framework_id,
                                problem=problem,
                                algorithm=algorithm,
                                model_list=model_list,
                                ref_dirs=ref_dirs,
-                               curr_ref_id=curr_ref_id, *args, **kwargs)
+                               curr_ref_id=curr_ref_id,
+                               g_aggregate_func=g_aggregate_func,
+                               f_aggregate_func=f_aggregate_func,
+                               m5_fg_aggregate_func=m5_fg_aggregate_func,
+                               m6_fg_aggregate_func=m6_fg_aggregate_func,
+                               *args, **kwargs)
         elif framework_id.lower() in ['22']:
             return Framework22(framework_id=framework_id,
                                problem=problem,
                                algorithm=algorithm,
                                model_list=model_list,
                                ref_dirs=ref_dirs,
-                               curr_ref_id=curr_ref_id, *args, **kwargs)
+                               curr_ref_id=curr_ref_id,
+                               g_aggregate_func=g_aggregate_func,
+                               f_aggregate_func=f_aggregate_func,
+                               m5_fg_aggregate_func=m5_fg_aggregate_func,
+                               m6_fg_aggregate_func=m6_fg_aggregate_func,
+                               *args, **kwargs)
         elif framework_id.lower() in ['31']:
             return Framework31(framework_id=framework_id,
                                problem=problem,
                                algorithm=algorithm,
                                model_list=model_list,
                                ref_dirs=ref_dirs,
-                               curr_ref_id=curr_ref_id, *args, **kwargs)
+                               curr_ref_id=curr_ref_id,
+                               g_aggregate_func=g_aggregate_func,
+                               f_aggregate_func=f_aggregate_func,
+                               m5_fg_aggregate_func=m5_fg_aggregate_func,
+                               m6_fg_aggregate_func=m6_fg_aggregate_func,
+                               *args, **kwargs)
         elif framework_id.lower() in ['32']:
             return Framework32(framework_id=framework_id,
                                problem=problem,
                                algorithm=algorithm,
                                model_list=model_list,
                                ref_dirs=ref_dirs,
-                               curr_ref_id=curr_ref_id, *args, **kwargs)
+                               curr_ref_id=curr_ref_id,
+                               g_aggregate_func=g_aggregate_func,
+                               f_aggregate_func=f_aggregate_func,
+                               m5_fg_aggregate_func=m5_fg_aggregate_func,
+                               m6_fg_aggregate_func=m6_fg_aggregate_func,
+                               *args, **kwargs)
         elif framework_id.lower() in ['41']:
             return Framework41(framework_id=framework_id,
                                problem=problem,
                                algorithm=algorithm,
                                model_list=model_list,
                                ref_dirs=ref_dirs,
-                               curr_ref_id=curr_ref_id, *args, **kwargs)
+                               curr_ref_id=curr_ref_id,
+                               g_aggregate_func=g_aggregate_func,
+                               f_aggregate_func=f_aggregate_func,
+                               m5_fg_aggregate_func=m5_fg_aggregate_func,
+                               m6_fg_aggregate_func=m6_fg_aggregate_func,
+                               *args, **kwargs)
         elif framework_id.lower() in ['42']:
             return Framework42(framework_id=framework_id,
                                problem=problem,
                                algorithm=algorithm,
                                model_list=model_list,
                                ref_dirs=ref_dirs,
-                               curr_ref_id=curr_ref_id, *args, **kwargs)
+                               curr_ref_id=curr_ref_id,
+                               g_aggregate_func=g_aggregate_func,
+                               f_aggregate_func=f_aggregate_func,
+                               m5_fg_aggregate_func=m5_fg_aggregate_func,
+                               m6_fg_aggregate_func=m6_fg_aggregate_func,
+                               *args, **kwargs)
         elif framework_id.lower() in ['5']:
             return Framework5(framework_id=framework_id,
-                               problem=problem,
-                               algorithm=algorithm,
-                               model_list=model_list,
-                               ref_dirs=ref_dirs,
-                               curr_ref_id=curr_ref_id, *args, **kwargs)
+                              problem=problem,
+                              algorithm=algorithm,
+                              model_list=model_list,
+                              ref_dirs=ref_dirs,
+                              curr_ref_id=curr_ref_id,
+                              g_aggregate_func=g_aggregate_func,
+                              f_aggregate_func=f_aggregate_func,
+                              m5_fg_aggregate_func=m5_fg_aggregate_func,
+                              m6_fg_aggregate_func=m6_fg_aggregate_func,
+                              *args, **kwargs)
         elif framework_id.lower() in ['6']:
             return Framework6(framework_id=framework_id,
-                               problem=problem,
-                               algorithm=algorithm,
-                               model_list=model_list,
-                               ref_dirs=ref_dirs,
-                               curr_ref_id=curr_ref_id, *args, **kwargs)
+                              problem=problem,
+                              algorithm=algorithm,
+                              model_list=model_list,
+                              ref_dirs=ref_dirs,
+                              curr_ref_id=curr_ref_id,
+                              g_aggregate_func=g_aggregate_func,
+                              f_aggregate_func=f_aggregate_func,
+                              m5_fg_aggregate_func=m5_fg_aggregate_func,
+                              m6_fg_aggregate_func=m6_fg_aggregate_func,
+                              *args, **kwargs)
         else:
-            raise Exception("Framework not supported")
+            raise Exception("Framework definition not supported")
     else:
-        raise Exception("Framework not provided")
+        raise Exception("Multiple Frameworks not supported")

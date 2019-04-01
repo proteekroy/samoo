@@ -1,14 +1,12 @@
 from pymoo.model.termination import MaximumFunctionCallTermination, MaximumGenerationTermination, IGDTermination, \
     Termination, get_termination
 from pymoo.rand import random
-from samoo import *
+from samoo import Samoo
 
 
 def get_alorithm(name):
-    if name == 'simultaneous':
-        return Simultaneous
-    elif name == 'generative':
-        return Generative
+    if name == 'samoo':
+        return Samoo
     else:
         raise Exception("Algorithm not known.")
 
@@ -54,7 +52,7 @@ def minimize(problem,
     if 'seed' not in kwargs:
         kwargs['seed'] = random.randint(1, 10000)
 
-    algorithm = get_alorithm(method)(**method_args)
+    algorithm = Samoo(**method_args)
     res = algorithm.solve(problem, termination, **kwargs)
 
     return res
